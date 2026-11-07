@@ -167,6 +167,22 @@ dialog{border-radius:20px;box-shadow:0 20px 60px rgba(0,0,0,.3);max-height:calc(
 .toast{bottom:calc(96px + env(safe-area-inset-bottom));border-radius:99px;box-shadow:0 8px 24px rgba(0,0,0,.25)}
 .install{display:flex;gap:12px;align-items:center}
 #syncDot:empty{display:none}
+.quick{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px}
+.quick button{border:0;background:var(--card);border-radius:16px;box-shadow:var(--shadow);padding:12px 2px 10px;font:inherit;font-size:.78rem;font-weight:700;color:var(--text);display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;border-bottom:3px solid var(--brand)}
+.quick button span{font-size:1.5rem}
+#app.dash>.quick{display:grid}
+.exgrid{display:grid;grid-template-columns:1fr;gap:10px}
+.excard{display:flex;gap:12px;align-items:center;text-align:left;background:var(--card);border:0;border-radius:var(--r);box-shadow:var(--shadow);padding:10px;font:inherit;color:var(--text);cursor:pointer}
+.exthumb{width:96px;height:72px;flex:none;border-radius:12px;background:#111 center/cover no-repeat;display:grid;place-items:center;color:#fff;font-size:1.6rem;overflow:hidden;position:relative}
+.exthumb span{background:rgba(177,44,36,.9);border-radius:99px;width:34px;height:34px;display:grid;place-items:center;font-size:.9rem}
+.exthumb.empty{background:color-mix(in srgb,var(--brand) 12%,var(--bg))}.exthumb.board{background:#2b6b4f;align-items:start}.exthumb.board svg{width:62px!important;margin-top:-4px}
+.exbody b{display:block;font-family:var(--disp);font-style:italic;text-transform:uppercase;font-size:1.12rem;line-height:1.1}.exbody small{display:block;color:var(--muted);margin:3px 0}.exicons{font-size:.78rem;color:var(--muted)}
+.exboard{max-width:340px;margin:0 auto}
+.exphotos{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:10px}.exphotos button{aspect-ratio:1;border:0;border-radius:10px;background:#ddd center/cover;cursor:pointer}
+nav.tabs button{font-size:.66rem}
+@media (min-width:700px){.exgrid{grid-template-columns:1fr 1fr}.exphotos{grid-template-columns:repeat(4,1fr)}nav.tabs button{font-size:.75rem}}
+@media (min-width:1000px){.exgrid{grid-template-columns:1fr 1fr 1fr}nav.tabs button{font-size:.95rem}}
+
 .tacnav{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:12px}
 .tacnav button{border:0;background:var(--card);color:var(--muted);border-radius:14px;padding:8px 2px;font:inherit;font-size:.78rem;font-weight:700;display:flex;flex-direction:column;align-items:center;gap:2px;box-shadow:var(--shadow);cursor:pointer}
 .tacnav button span{font-size:1.25rem}.tacnav button.on{background:var(--brand);color:#fff}
@@ -259,7 +275,8 @@ nav.tabs button.on{color:var(--brand)}
   <button data-t="home"><span>🏠</span>Inicio</button>
   <button data-t="cal"><span>📅</span>Calendario</button>
   <button data-t="roster"><span>👥</span>Plantilla</button>
-  <button data-t="stats"><span>📊</span>Estadíst.</button>
+  <button data-t="rot"><span>🧠</span>Táctica</button>
+  <button data-t="ex"><span>🏋️</span>Ejercicios</button>
   <button data-t="more"><span>☰</span>Más</button>
 </nav>
 <div class="toast" id="toast"></div>
@@ -273,7 +290,7 @@ const ATT={P:"Presente",A:"Ausente",T:"Tarde",J:"Justificado"};
 const RSVP={si:"Voy",no:"No voy",duda:"Duda"};
 const ST={A:"Ataque",B:"Bloqueo",S:"Saque",E:"Error"};
 const EXCAT=["Calentamiento","Técnica","Táctica","Físico","Juego","Vuelta a la calma"];
-const MORE=["videos","rot","ex","notes","money","settings","leagues","board"];
+const MORE=["videos","stats","notes","money","settings","leagues","board"];
 let rotTab="sys";
 const POSC={Colocador:"#f59e0b",Opuesto:"#dc2626",Receptor:"#1f6feb",Central:"#16a34a","Líbero":"#7c3aed",Otro:"#64748b"};
 const POSN={Colocador:"Colocadoras",Opuesto:"Opuestas",Receptor:"Receptoras",Central:"Centrales","Líbero":"Líberos",Otro:"Otras"};
@@ -307,7 +324,7 @@ const present=(s,pid)=>s.att[pid]==="P"||s.att[pid]==="T";
 const evs=s=>(s.ev=s.ev||[]);
 function keepScroll(f){const y=scrollY;const open=[...document.querySelectorAll("#app details")].map(d=>d.open);f();render();document.querySelectorAll("#app details").forEach((d,i)=>{if(open[i]!==undefined)d.open=open[i]});scrollTo(0,y)}
 
-function go(t){if(t==="board"){t="rot";rotTab="board"}tab=t;selSession=null;selSlot=null;selPlayer=null;selLeague=null;selTeam=null;render();scrollTo(0,0)}
+function go(t){if(t==="board"){t="rot";rotTab="board"}if(t==="ex"&&tab==="ex")selExercise=null;tab=t;selSession=null;selSlot=null;selPlayer=null;selLeague=null;selTeam=null;render();scrollTo(0,0)}
 function render(){
   const myT=(db.leagues||[]).map(L=>L.teams.find(t=>t.mine)).find(t=>t&&t.logo);const TT={home:"Inicio",cal:"Calendario",roster:"Plantilla",stats:"Estadísticas",more:"Más",videos:"Vídeos",rot:"Táctica",ex:"Ejercicios",leagues:"Ligas",board:"Pizarra táctica",notes:"Notas",money:"Cuotas y gastos",settings:"Ajustes"};
   $("#teamTitle").innerHTML=`<img src="crest.png" alt="">`+`<span>${esc(db.team||"Mi equipo")}<small>${TT[tab]||""}</small></span>`;
@@ -338,6 +355,7 @@ function vHome(){
   (db.leagues||[]).forEach(L=>{const st=standings(L);const i=st.findIndex(r=>r.t.mine);if(i<0)return;const me=st[i].t;const nx=L.matches.filter(m=>(m.home===me.id||m.away===me.id)&&!setsOf(m)&&!m.postponed&&m.date>=today()).sort((a,b)=>(a.date+(a.time||'')).localeCompare(b.date+(b.time||'')))[0];
     if(nx){const rv=L.teams.find(t=>t.id===(nx.home===me.id?nx.away:nx.home))||{name:'?'};h+=`<div class="card click" onclick="go('leagues');selLeague='${L.id}';selTeam='${me.id}';render()"><div class="muted">Próximo partido de liga · ${nx.j?'J'+nx.j+' · ':''}${fmtDate(nx.date)}${nx.time&&nx.time!=='00:00'?' '+nx.time:''}</div><div class="vs"><div>${crest(L.teams.find(t=>t.id===nx.home),48)}<b>${esc(tname(L,nx.home))}</b></div><span>VS</span><div>${crest(L.teams.find(t=>t.id===nx.away),48)}<b>${esc(tname(L,nx.away))}</b></div></div>${nx.venue?`<div class="muted">📍 ${esc(nx.venue)} · ${nx.home===me.id?'en casa':'fuera'}</div>`:''}</div>`}
     h+=`<div class="card click" onclick="go('leagues');selLeague='${L.id}';render()"><div class="muted">${esc(L.name)}</div><h2 style="margin:4px 0;display:flex;align-items:center;gap:8px">${crest(st[i].t,32)}${i+1}º · ${st[i].pts} puntos</h2><div class="muted">${st[i].pg} ganados · ${st[i].pp} perdidos · sets ${st[i].sf}-${st[i].sc}</div></div>`});
+  h+=`<div class="quick"><button onclick="go('board')"><span>✏️</span>Pizarra</button><button onclick="go('ex')"><span>🏋️</span>Ejercicios</button><button onclick="go('stats')"><span>📊</span>Estadísticas</button><button onclick="go('leagues')"><span>🏆</span>Ligas</button></div>`;
   h+=`<div class="kpis" style="margin-bottom:12px"><div class="kpi"><b>${db.players.length}</b><small>jugadoras</small></div><div class="kpi"><b>${teamAtt()}%</b><small>asistencia</small></div><div class="kpi click" onclick="go('money')"><b>${pend}</b><small>cuotas pendientes</small></div></div>`;
   const recent=[...db.notes].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,2);
   if(recent.length)h+=`<div class="card"><div class="row" style="justify-content:space-between"><h3 style="margin:0">Últimas notas</h3><button class="btn sec small" onclick="go('notes')">Ver todas</button></div>${recent.map(n=>`<div style="margin-top:10px"><b>${esc(n.title||"Nota")}</b> <span class="muted">${fmtDate(n.date)}</span><div class="muted note">${esc(n.text.slice(0,140))}${n.text.length>140?"…":""}</div></div>`).join("")}</div>`;
@@ -351,7 +369,7 @@ function teamAtt(){let n=0,ok=0;db.sessions.forEach(s=>Object.values(s.att).forE
 /* ---------- MÁS ---------- */
 function vMore(){
   const t=(k,i,n,d)=>`<button class="tile" onclick="go('${k}')"><span>${i}</span><b>${n}</b><small>${d}</small></button>`;
-  ensureLeagues();return `<div class="tiles">${t("rot","🧠","Táctica","Rotaciones, pizarra, ejercicios y ejemplos")}${t("leagues","🏆","Ligas",db.leagues.length+" competiciones")}${t("videos","🎬","Vídeos",db.videos.length+" guardados")}${t("ex","🏋️","Ejercicios",db.exercises.length+" en la biblioteca")}${t("notes","📝","Notas",db.notes.length+" notas")}${t("money","💶","Cuotas y gastos","Saldo "+eur(balance()))}${t("settings","⚙️","Datos y Google",sync.url?"Conectado a Google":"Sin conectar")}</div>`;
+  ensureLeagues();return `<div class="tiles">${t("stats","📊","Estadísticas","Temporada, jugadores y partidos")}${t("leagues","🏆","Ligas",db.leagues.length+" competiciones")}${t("videos","🎬","Vídeos",db.videos.length+" guardados")}${t("notes","📝","Notas",db.notes.length+" notas")}${t("money","💶","Cuotas y gastos","Saldo "+eur(balance()))}${t("settings","⚙️","Datos y Google",sync.url?"Conectado a Google":"Sin conectar")}</div>`;
 }
 
 /* ---------- PLANTILLA ---------- */
@@ -657,25 +675,62 @@ function loadLineup(i){const l=db.lineups[i];db.lineup={slots:l.slots.map(id=>pl
 function delLineup(i){db.lineups.splice(i,1);save();render()}
 
 /* ---------- EJERCICIOS ---------- */
-function vEx(){
-  const xs=db.exercises.filter(e=>!exfilter||e.cat===exfilter).sort((a,b)=>a.name.localeCompare(b.name));
-  return `<div class="card"><h2>Nuevo ejercicio</h2><form onsubmit="saveEx(event)">
-   <input name="name" placeholder="Nombre (ej. Recepción en W con saque)" required>
-   <div class="row" style="margin-top:8px"><select name="cat" class="grow">${EXCAT.map(c=>`<option>${c}</option>`).join("")}</select><input name="mins" type="number" inputmode="numeric" placeholder="Minutos" style="width:110px"></div>
-   <textarea name="desc" rows="3" placeholder="Descripción, organización, variantes…" style="margin-top:8px"></textarea>
-   <input name="url" type="url" placeholder="Vídeo de ejemplo (YouTube/Drive, opcional)" style="margin-top:8px">
-   <div class="row" style="margin-top:10px"><button class="btn">Guardar</button></div></form></div>
-  <div class="card"><h2>Biblioteca (${db.exercises.length})</h2>
-  <div class="chips" style="margin-bottom:8px"><button class="chip ${exfilter?"":"si"}" onclick="exfilter='';render()">Todos</button>${EXCAT.map(c=>`<button class="chip ${exfilter===c?"si":""}" onclick="exfilter='${c}';render()">${c}</button>`).join("")}</div>
-  ${xs.length?`<ul class="list">${xs.map(e=>`<li class="click" onclick="openEx('${e.id}')"><div class="grow"><b>${esc(e.name)}</b><div class="muted">${esc(e.cat)}${e.mins?" · "+e.mins+" min":""}${e.url?" · 🎬":""}</div></div><span>›</span></li>`).join("")}</ul>`:'<div class="empty">Aún no hay ejercicios.</div>'}</div>`;
-}
-function saveEx(e){e.preventDefault();const f=e.target;db.exercises.push({id:uid(),name:f.name.value.trim(),cat:f.cat.value,mins:f.mins.value,desc:f.desc.value.trim(),url:f.url.value.trim()});save();render();toast("Ejercicio guardado")}
-function openEx(id){const x=db.exercises.find(e=>e.id===id);const d=$("#dlg");const em=x.url&&embedUrl(x.url);
-  d.innerHTML=`<h3>${esc(x.name)}</h3><div class="muted">${esc(x.cat)}${x.mins?" · "+x.mins+" min":""}</div>${x.desc?`<p class="note">${esc(x.desc)}</p>`:""}
-  ${em?`<div class="player-frame"><iframe src="${em}" allowfullscreen allow="fullscreen"></iframe></div>`:x.url?`<a class="btn sec small" href="${esc(x.url)}" target="_blank" rel="noopener">Abrir vídeo</a>`:""}
-  <div class="row" style="margin-top:14px;justify-content:space-between"><button class="btn danger small" onclick="delEx('${x.id}')">Eliminar</button><button class="btn sec" onclick="$('#dlg').close()">Cerrar</button></div>`;
-  d.onclose=null;d.showModal()}
-function delEx(id){if(!confirm("¿Eliminar este ejercicio?"))return;db.exercises=db.exercises.filter(e=>e.id!==id);db.sessions.forEach(s=>{if(s.plan)s.plan=s.plan.filter(x=>x!==id)});save();$("#dlg").close();render()}
+let selExercise=null,exQ="";
+const exVideos=x=>[...(x.videos||[]),...(x.url&&!(x.videos||[]).includes(x.url)?[x.url]:[])];
+function exThumb(x){const im=(x.images||[])[0];if(im)return `<div class="exthumb" style="background-image:url('${esc(im)}')"></div>`;
+  const y=exVideos(x).map(ytId).find(Boolean);if(y)return `<div class="exthumb" style="background-image:url('https://i.ytimg.com/vi/${y}/mqdefault.jpg')"><span>▶</span></div>`;
+  if(x.play)return `<div class="exthumb board">${miniBoardSvg(x.play,0)}</div>`;return `<div class="exthumb empty">${{"Calentamiento":"🔥","Técnica":"🎯","Táctica":"🧠","Físico":"💪","Juego":"🏐","Vuelta a la calma":"🧘"}[x.cat]||"🏋️"}</div>`}
+function miniBoardSvg(B,fi,id){const F=B.frames[fi||0];return `<svg ${id?`id="${id}"`:""} viewBox="-1.5 -1.5 12 21" style="width:100%;display:block;border-radius:10px">${markers()}${courtSvg(true)}<g class="mdraw">${F.draw.map(drawSvg).join("")}</g><g class="mtoks">${B.tokens.map(t=>{const p=F.pos[t.id];return p?tokSvg(t,p[0],p[1]):""}).join("")}</g></svg>`}
+function animMini(id,B){const svg=document.getElementById(id);if(!svg||B.frames.length<2)return;let i=0;const btn=document.getElementById(id+"-b");if(btn)btn.disabled=true;
+  const step=()=>{if(!document.getElementById(id))return;if(i>=B.frames.length-1){if(btn)btn.disabled=false;return}const A=B.frames[i],Z=B.frames[i+1];const t0=performance.now();
+    svg.querySelector(".mdraw").innerHTML=A.draw.map(drawSvg).join("");const cap=document.getElementById(id+"-c");if(cap)cap.textContent=Z.note?`Paso ${i+2}. ${Z.note}`:"";
+    const tick=now=>{const k=Math.min(1,(now-t0)/1100);const e=k<.5?2*k*k:1-Math.pow(-2*k+2,2)/2;
+      svg.querySelectorAll(".mtoks [data-tid]").forEach(g=>{const a=A.pos[g.dataset.tid],z=Z.pos[g.dataset.tid]||a;if(a)g.setAttribute("transform",`translate(${a[0]+(z[0]-a[0])*e} ${a[1]+(z[1]-a[1])*e})`)});
+      if(k<1)requestAnimationFrame(tick);else{i++;svg.querySelector(".mdraw").innerHTML=Z.draw.map(drawSvg).join("");setTimeout(step,800)}};requestAnimationFrame(tick)};step()}
+function vEx(){if(selExercise&&db.exercises.find(e=>e.id===selExercise))return vExDetail(db.exercises.find(e=>e.id===selExercise));
+  const q=norm(exQ);const xs=db.exercises.filter(e=>(!exfilter||e.cat===exfilter)&&(!q||norm(e.name+" "+(e.desc||"")).includes(q))).sort((a,b)=>a.name.localeCompare(b.name));
+  return `<div class="row" style="margin-bottom:12px"><input id="exq" class="grow" placeholder="🔍 Buscar ejercicio…" value="${esc(exQ)}" oninput="exQ=this.value;clearTimeout(window._xq);window._xq=setTimeout(()=>{render();const i=$('#exq');if(i){i.focus();i.setSelectionRange(i.value.length,i.value.length)}},300)"><button class="btn" onclick="newExercise()">＋ Nuevo</button></div>
+  <div class="chips" style="margin-bottom:12px"><button class="chip ${exfilter?"":"si"}" onclick="exfilter='';render()">Todos (${db.exercises.length})</button>${EXCAT.map(c=>`<button class="chip ${exfilter===c?"si":""}" onclick="exfilter='${c}';render()">${c}</button>`).join("")}</div>
+    ${xs.length?`<div class="exgrid">${xs.map(e=>`<button class="excard" onclick="selExercise='${e.id}';render();scrollTo(0,0)">${exThumb(e)}<div class="exbody"><b>${esc(e.name)}</b><small>${esc(e.cat)}${e.mins?" · "+e.mins+" min":""}</small><span class="exicons">${exVideos(e).length?`🎬 ${exVideos(e).length}`:""} ${(e.images||[]).length?`📷 ${e.images.length}`:""} ${e.play?"🧑‍🏫 pizarra":""}</span></div></button>`).join("")}</div>`+(db.exercises.some(e=>e.seed)?"":`<div class="row" style="justify-content:center;margin-top:14px"><button class="btn sec small" onclick="seedExercises()">📚 Añadir ejercicios de ejemplo con pizarra</button></div>`)
+   :`<div class="card empty">${db.exercises.length?"Nada coincide con la búsqueda.":"Aún no hay ejercicios."}<div class="row" style="justify-content:center;margin-top:10px"><button class="btn sec small" onclick="seedExercises()">📚 Añadir ejercicios de ejemplo</button></div></div>`}`}
+function vExDetail(x){const vids=exVideos(x);
+  return `<div class="row" style="margin-bottom:10px"><button class="btn sec small" onclick="selExercise=null;render()">‹ Ejercicios</button></div>
+  <div class="card"><h2 style="margin-bottom:4px">${esc(x.name)}</h2><div class="row"><span class="pill">${esc(x.cat)}</span>${x.mins?`<span class="pill">⏱ ${x.mins} min</span>`:""}</div>
+   ${x.desc?`<p class="note" style="margin-bottom:0">${esc(x.desc)}</p>`:""}
+   <div class="row" style="margin-top:12px"><button class="btn sec small" onclick="editExercise('${x.id}')">✎ Editar</button><button class="btn sec small" onclick="exToBoard('${x.id}')">✏️ ${x.play?"Editar dibujo":"Dibujar en la pizarra"}</button></div></div>
+  ${x.play?`<div class="card"><h3>🧑‍🏫 Organización</h3><div class="exboard">${miniBoardSvg(x.play,0,"exb")}</div><p class="muted" id="exb-c" style="min-height:1.2em">${x.play.frames[0].note?esc("Paso 1. "+x.play.frames[0].note):""}</p>${x.play.frames.length>1?`<button class="btn" id="exb-b" onclick="this.parentNode.querySelector('.exboard').innerHTML=miniBoardSvg(db.exercises.find(e=>e.id==='${x.id}').play,0,'exb');animMini('exb',db.exercises.find(e=>e.id==='${x.id}').play)">▶ Ver animado</button>`:""}</div>`:""}
+  <div class="card"><div class="row" style="justify-content:space-between"><h3 style="margin:0">🎬 Vídeos</h3><button class="btn sec small" onclick="addExVideo('${x.id}')">＋ Vídeo</button></div>
+   ${vids.length?vids.map((u,i)=>{const em=embedUrl(u);return `<div style="margin-top:10px">${em?`<div class="player-frame"><iframe src="${em}" loading="lazy" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe></div>`:`<a class="btn sec small" href="${esc(u)}" target="_blank" rel="noopener">▶ Abrir vídeo</a> <span class="muted">${esc(u.replace(/^https?:\/\//,"").slice(0,40))}</span>`}
+     <div class="row" style="justify-content:flex-end;margin-top:4px"><button class="btn danger small" onclick="delExVideo('${x.id}',${i})">Quitar</button></div></div>`}).join(""):`<p class="muted" style="margin-bottom:0">Pega un enlace de YouTube o Google Drive y se verá aquí dentro. Otros enlaces (Instagram, TikTok…) se abren aparte.</p>`}</div>
+  <div class="card"><div class="row" style="justify-content:space-between"><h3 style="margin:0">📷 Imágenes</h3><label class="btn sec small" style="margin:0;color:var(--text)">＋ Foto<input type="file" accept="image/*" multiple hidden onchange="addExImages('${x.id}',this)"></label></div>
+   ${(x.images||[]).length?`<div class="exphotos">${x.images.map((im,i)=>`<button onclick="viewExImage('${x.id}',${i})" style="background-image:url('${esc(im)}')" aria-label="Ver imagen"></button>`).join("")}</div>`:`<p class="muted" style="margin-bottom:0">Haz una foto de la pizarra del pabellón o sube un esquema.</p>`}</div>
+  <div class="card"><button class="btn danger small" onclick="delEx('${x.id}')">Eliminar ejercicio</button></div>`}
+function exForm(x){return `<label>Nombre</label><input name="name" value="${esc(x.name||"")}" required placeholder="Ej. Recepción en W con saque">
+  <div class="row"><div class="grow"><label>Tipo</label><select name="cat">${EXCAT.map(c=>`<option ${c===x.cat?"selected":""}>${c}</option>`).join("")}</select></div><div style="width:110px"><label>Minutos</label><input name="mins" type="number" inputmode="numeric" value="${esc(x.mins||"")}"></div></div>
+  <label>Explicación</label><textarea name="desc" rows="4" placeholder="Organización, reglas, variantes…">${esc(x.desc||"")}</textarea>
+  <label>Vídeo de ejemplo (opcional)</label><input name="url" type="url" placeholder="https://youtube.com/…">`}
+function newExercise(){const d=$("#dlg");d.innerHTML=`<form method="dialog" id="exf"><h3>Nuevo ejercicio</h3>${exForm({})}<div class="row" style="justify-content:flex-end;margin-top:14px"><button value="cancel" class="btn sec" formnovalidate>Cancelar</button><button value="ok" class="btn">Crear</button></div></form>`;
+  d.showModal();d.onclose=()=>{if(d.returnValue!=="ok")return;const f=$("#exf");if(!f.name.value.trim())return;const x={id:uid(),name:f.name.value.trim(),cat:f.cat.value,mins:f.mins.value,desc:f.desc.value.trim(),videos:f.url.value.trim()?[f.url.value.trim()]:[],images:[]};db.exercises.push(x);selExercise=x.id;save();render();scrollTo(0,0)}}
+function editExercise(id){const x=db.exercises.find(e=>e.id===id);const d=$("#dlg");d.innerHTML=`<form method="dialog" id="exf"><h3>Editar ejercicio</h3>${exForm(x).replace(/<label>Vídeo de ejemplo[\s\S]*$/,"")}<div class="row" style="justify-content:flex-end;margin-top:14px"><button value="cancel" class="btn sec" formnovalidate>Cancelar</button><button value="ok" class="btn">Guardar</button></div></form>`;
+  d.showModal();d.onclose=()=>{if(d.returnValue!=="ok")return;const f=$("#exf");Object.assign(x,{name:f.name.value.trim()||x.name,cat:f.cat.value,mins:f.mins.value,desc:f.desc.value.trim()});save();render()}}
+function addExVideo(id){const u=prompt("Pega el enlace del vídeo (YouTube, Google Drive…)");if(!u||!u.trim())return;const x=db.exercises.find(e=>e.id===id);x.videos=exVideos(x);delete x.url;x.videos.push(u.trim());save();render()}
+function delExVideo(id,i){if(!confirm("¿Quitar este vídeo?"))return;const x=db.exercises.find(e=>e.id===id);x.videos=exVideos(x);delete x.url;x.videos.splice(i,1);save();render()}
+function addExImages(id,inp){const x=db.exercises.find(e=>e.id===id);x.images=x.images||[];const files=[...inp.files];let left=files.length;if(!left)return;toast("Preparando imágenes…");
+  files.forEach(f=>{const img=new Image();const url=URL.createObjectURL(f);img.onload=()=>{const M=900;const k=Math.min(1,M/Math.max(img.width,img.height));const c=document.createElement("canvas");c.width=Math.round(img.width*k);c.height=Math.round(img.height*k);
+    c.getContext("2d").drawImage(img,0,0,c.width,c.height);x.images.push(c.toDataURL("image/jpeg",.72));URL.revokeObjectURL(url);if(--left===0){save();render();toast("Imágenes guardadas")}};img.onerror=()=>{if(--left===0){save();render()}};img.src=url})}
+function viewExImage(id,i){const x=db.exercises.find(e=>e.id===id);const d=$("#dlg");d.innerHTML=`<img src="${esc(x.images[i])}" style="width:100%;border-radius:12px;display:block" alt=""><div class="row" style="justify-content:space-between;margin-top:12px"><button class="btn danger small" onclick="delExImage('${id}',${i})">Borrar foto</button><button class="btn sec" onclick="$('#dlg').close()">Cerrar</button></div>`;d.onclose=null;d.showModal()}
+function delExImage(id,i){if(!confirm("¿Borrar esta foto?"))return;const x=db.exercises.find(e=>e.id===id);x.images.splice(i,1);save();$("#dlg").close();render()}
+function exToBoard(id){const x=db.exercises.find(e=>e.id===id);board=x.play?JSON.parse(JSON.stringify(x.play)):newBoard(true);board.exId=id;board.name=x.name;boardFrame=0;boardTool=x.play?"move":"place";boardItem=x.play?null:"cone";stashBoard();tab="rot";rotTab="board";render();scrollTo(0,0)}
+function saveBoardToEx(){const B=curBoard();const x=db.exercises.find(e=>e.id===B.exId);if(!x){toast("El ejercicio ya no existe");return}const copy=JSON.parse(JSON.stringify(B));delete copy.exId;x.play=copy;save();tab="ex";selExercise=x.id;render();scrollTo(0,0);toast("Dibujo guardado en el ejercicio")}
+function openEx(id){tab="ex";selExercise=id;$("#dlg").open&&$("#dlg").close();render();scrollTo(0,0)}
+function delEx(id){if(!confirm("¿Eliminar este ejercicio?"))return;db.exercises=db.exercises.filter(e=>e.id!==id);db.sessions.forEach(s=>{if(s.plan)s.plan=s.plan.filter(x=>x!==id)});selExercise=null;save();if($("#dlg").open)$("#dlg").close();render()}
+function seedExercises(){const L=examples();const add=(eid,cat,mins,desc)=>{const e=L.find(z=>z.id===eid);if(!e||db.exercises.some(x=>x.seed===eid))return;db.exercises.push({id:uid(),seed:eid,name:e.name.replace(/^Ejercicio: /,""),cat,mins,desc:desc||e.desc,videos:[],images:[],play:{id:uid(),name:e.name,tokens:e.tokens,frames:e.frames}})};
+  add("ex-d1","Técnica",15,"Entrenador saca desde el otro campo. Tres receptores, uno por zona, pasan a la diana de colocación. Cuenta un punto por balón en la diana; rotan al cono siguiente cada 5 balones.");
+  add("ex-d2","Técnica",15,"Colocador fijo en su sitio. Fila de atacantes en zona 4. El entrenador da el balón desde el carro, colocación a 4 y remate buscando un cono.");
+  add("ex-d3","Técnica",12,"El entrenador ataca desde un cajón al otro lado de la red. Tres defensores en triángulo; la defensa tiene que llegar a la diana del colocador.");
+  add("ex-w4","Táctica",20,"Side-out básico en 6x6: recepción en W, penetración del colocador y ataque por 4 con cobertura.");
+  add("ex-block","Táctica",15,"El rival ataca por su zona 4. Trabajamos el cierre del bloqueo doble y la defensa en línea con contraataque.");
+  save();render();toast("Ejercicios de ejemplo añadidos")}
 
 /* ---------- NOTAS ---------- */
 function vNotes(){
@@ -1094,7 +1149,7 @@ function boardSvg(){const B=curBoard();const F=B.frames[boardFrame];
   <g id="bdraw">${F.draw.map(drawSvg).join("")}</g><g id="btoks">${B.tokens.map(t=>{const p=F.pos[t.id];return p?tokSvg(t,p[0],p[1]):""}).join("")}</g></svg>`}
 function vBoard(){const B=curBoard();const F=B.frames[boardFrame];
   const tools=[["move","✋","Mover"],["arrow","➜","Carrera"],["dash","⇢","Balón"],["free","✏️","Lápiz"],["zone","▭","Zona"],["erase","🧽","Quitar"]];
-  return `<div class="card"><div class="row"><input id="bname" class="grow" value="${esc(B.name)}" onchange="curBoard().name=this.value;stashBoard()"><button class="btn small" onclick="savePlay()">💾 Guardar</button>
+  return `<div class="card"><div class="row"><input id="bname" class="grow" value="${esc(B.name)}" onchange="curBoard().name=this.value;stashBoard()">${B.exId?`<button class="btn small" onclick="saveBoardToEx()">💾 Guardar en el ejercicio</button>`:`<button class="btn small" onclick="savePlay()">💾 Guardar</button>`}
    <button class="btn sec small" onclick="newBoardAsk()">Nueva</button></div>
    <div class="toolbar" style="margin-top:10px">${tools.map(([k,i,l])=>`<button class="${boardTool===k?"on":""}" onclick="boardTool='${k}';boardItem=null;render()"><span>${i}</span>${l}</button>`).join("")}</div>
    <div class="row" style="margin-top:8px">${BCOLS.map(c=>`<button onclick="boardColor='${c}';render()" style="width:30px;height:30px;border-radius:50%;background:${c};border:${boardColor===c?"3px solid var(--brand)":"1px solid var(--line)"};cursor:pointer" aria-label="color"></button>`).join("")}<button class="btn sec small" onclick="undoDraw()">↶ Deshacer trazo</button><button class="btn sec small" onclick="clearDraw()">Limpiar</button></div>
@@ -1310,8 +1365,8 @@ function examples(){const L=[];
 function vLib(){const ex=examples();const cats=[...new Set(ex.map(e=>e.cat))];
   const mini=e=>{const F=e.frames[0];return `<svg viewBox="-1.5 -1.5 12 21" class="mini">${markers()}${courtSvg(true)}${F.draw.map(drawSvg).join("")}${e.tokens.map(t=>{const p=F.pos[t.id];return p?tokSvg(t,p[0],p[1]):""}).join("")}</svg>`};
   return `<p class="muted" style="margin:0 0 10px">Jugadas y ejercicios listos para ver animados. Ábrelos en la pizarra, cámbialos a tu gusto y guárdalos como tuyos.</p>`+cats.map(c=>`<h3 style="margin:16px 4px 8px">${c==="Ejercicio"?"🔺 Ejercicios con material":c==="Ataque"?"💥 Ataque":c==="Defensa"?"🧱 Defensa":c==="Saque"?"🎯 Saque":"⚡ Transición"}</h3>
-   <div class="libgrid">${ex.filter(e=>e.cat===c).map(e=>`<button class="libcard" onclick="openEx('${e.id}')">${mini(e)}<div><b>${esc(e.name)}</b><small>${esc(e.desc)}</small><span class="pill">${e.frames.length} pasos · ▶ ver</span></div></button>`).join("")}</div>`).join("")}
-function openEx(id){const e=examples().find(x=>x.id===id);board=JSON.parse(JSON.stringify({id:uid(),name:e.name,tokens:e.tokens,frames:e.frames}));boardFrame=0;boardTool="move";stashBoard();rotTab="board";render();scrollTo(0,0);setTimeout(playBoard,400)}
+   <div class="libgrid">${ex.filter(e=>e.cat===c).map(e=>`<button class="libcard" onclick="openExample('${e.id}')">${mini(e)}<div><b>${esc(e.name)}</b><small>${esc(e.desc)}</small><span class="pill">${e.frames.length} pasos · ▶ ver</span></div></button>`).join("")}</div>`).join("")}
+function openExample(id){const e=examples().find(x=>x.id===id);board=JSON.parse(JSON.stringify({id:uid(),name:e.name,tokens:e.tokens,frames:e.frames}));boardFrame=0;boardTool="move";stashBoard();rotTab="board";render();scrollTo(0,0);setTimeout(playBoard,400)}
 
 /* ---------- DATOS Y GOOGLE ---------- */
 let installEvt=null;addEventListener("beforeinstallprompt",e=>{e.preventDefault();installEvt=e;if(tab==="settings")render()});
