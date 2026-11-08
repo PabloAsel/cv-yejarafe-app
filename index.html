@@ -243,6 +243,17 @@ nav.tabs button{font-size:.66rem}
 .runtime{font-family:var(--disp);font-style:italic;font-weight:800;font-size:4.2rem;margin:8px 0 12px;color:var(--brand)}.runtime.done{animation:blink 1s infinite}
 @keyframes blink{50%{opacity:.25}}.runx{position:absolute;top:10px;right:10px;border:0;background:var(--bg);color:var(--text);border-radius:50%;width:36px;height:36px;cursor:pointer}
 .rivalcard textarea{width:100%}
+label.radio{display:flex;gap:8px;align-items:center;padding:10px;border:1px solid var(--line);border-radius:12px;margin:6px 0;font-weight:400}
+.injcard{border-left:4px solid var(--bad)}.warntxt{background:color-mix(in srgb,var(--bad) 12%,var(--card));border-radius:10px;padding:8px 10px;font-size:.9rem}
+.kpi.warnk b{color:var(--bad)}.linkbtn{border:0;background:none;color:var(--brand);text-decoration:underline;font:inherit;padding:0;cursor:pointer}
+.wq{margin:12px 0}.wq label{display:flex;justify-content:space-between;margin-bottom:2px}.wq label b{font-family:var(--disp);font-size:1.4rem;color:var(--brand)}.wq input[type=range]{width:100%;accent-color:var(--brand);height:28px}.wq small{display:block}
+.loadbars{display:flex;gap:6px;align-items:flex-end;height:110px;padding-top:6px}.loadbars>div{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%}.loadbars i{display:block;width:100%;background:var(--brand);border-radius:6px 6px 2px 2px;min-height:3px}.loadbars small{font-size:.62rem;color:var(--muted);margin-top:3px}
+body.pub main{max-width:560px;margin:0 auto}
+.livebox{background:#0a0a0a;color:#fff;border-radius:22px;padding:20px 16px;text-align:center;box-shadow:var(--shadow)}.livebox .muted{color:#bbb}
+.liveteams{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px;margin:16px 0}.liveteams>div{display:flex;flex-direction:column;align-items:center;gap:6px}.liveteams b{font-size:.9rem;line-height:1.2}
+.rivalball{font-size:2.6rem;line-height:64px}.livesets{font-family:var(--disp);font-style:italic;font-size:2rem;font-weight:800}.livesets small{display:block;font-size:.7rem;color:#bbb;font-style:normal}
+.livescore{display:flex;justify-content:center;align-items:center;gap:14px;font-family:var(--disp);font-style:italic;font-weight:800;font-size:5.5rem;line-height:1;color:#fff}.livescore i{color:var(--brand);font-size:3rem}
+.livehist{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-top:12px}
 /* pizarra v3 */
 .bwrap{background:var(--card);border-radius:var(--r);box-shadow:var(--shadow);padding:10px;margin-bottom:12px}
 .btop{display:flex;gap:6px;align-items:center;margin-bottom:8px}.btop input{min-width:0}
@@ -435,7 +446,7 @@ function vHome(){
     if(nx){const rv=L.teams.find(t=>t.id===(nx.home===me.id?nx.away:nx.home))||{name:'?'};h+=`<div class="card click" onclick="go('leagues');selLeague='${L.id}';selTeam='${me.id}';render()"><div class="muted">Próximo partido de liga · ${nx.j?'J'+nx.j+' · ':''}${fmtDate(nx.date)}${nx.time&&nx.time!=='00:00'?' '+nx.time:''}</div><div class="vs"><div>${crest(L.teams.find(t=>t.id===nx.home),48)}<b>${esc(tname(L,nx.home))}</b></div><span>VS</span><div>${crest(L.teams.find(t=>t.id===nx.away),48)}<b>${esc(tname(L,nx.away))}</b></div></div>${nx.venue?`<div class="muted">📍 ${esc(nx.venue)} · ${nx.home===me.id?'en casa':'fuera'}</div>`:''}</div>`}
     h+=`<div class="card click" onclick="go('leagues');selLeague='${L.id}';render()"><div class="muted">${esc(L.name)}</div><h2 style="margin:4px 0;display:flex;align-items:center;gap:8px">${crest(st[i].t,32)}${i+1}º · ${st[i].pts} puntos</h2><div class="muted">${st[i].pg} ganados · ${st[i].pp} perdidos · sets ${st[i].sf}-${st[i].sc}</div></div>`});
   h+=`<div class="quick"><button onclick="go('board')"><span>✏️</span>Pizarra</button><button onclick="go('ex')"><span>🏋️</span>Ejercicios</button><button onclick="go('stats')"><span>📊</span>Estadísticas</button><button onclick="go('leagues')"><span>🏆</span>Ligas</button></div>`;
-  h+=birthdaysCard();
+  h+=injHomeCard()+loadHomeCard()+birthdaysCard();
   h+=`<div class="kpis" style="margin-bottom:12px"><div class="kpi"><b>${db.players.length}</b><small>jugadoras</small></div><div class="kpi"><b>${teamAtt()}%</b><small>asistencia</small></div><div class="kpi click" onclick="go('money')"><b>${pend}</b><small>cuotas pendientes</small></div></div>`;
   const recent=[...db.notes].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,2);
   if(recent.length)h+=`<div class="card"><div class="row" style="justify-content:space-between"><h3 style="margin:0">Últimas notas</h3><button class="btn sec small" onclick="go('notes')">Ver todas</button></div>${recent.map(n=>`<div style="margin-top:10px"><b>${esc(n.title||"Nota")}</b> <span class="muted">${fmtDate(n.date)}</span><div class="muted note">${esc(n.text.slice(0,140))}${n.text.length>140?"…":""}</div></div>`).join("")}</div>`;
@@ -463,6 +474,7 @@ function vRoster(){
    <div class="row" style="margin-top:8px"><select name="pos" class="grow">${POS.map(p=>`<option>${p}</option>`).join("")}</select><input name="phone" class="grow" type="tel" placeholder="Teléfono (opcional)"></div>
    <details style="margin-top:8px"><summary class="muted">Datos físicos (opcional)</summary>${physFields({})}</details>
    <div class="row" style="margin-top:10px"><button class="btn">Añadir</button></div></form></div>
+  ${fedTeams().length?`<div class="card"><div class="row"><div class="grow"><b>⬇️ Importar de la federación</b><div class="muted">Trae los nombres de tu ficha federativa en un toque.</div></div><button class="btn small" onclick="importFed()">Importar</button></div></div>`:""}
   <details class="card"><summary><b>Pegar lista de jugadores</b></summary>
   <p class="muted">Una persona por línea: dorsal, nombre y posición. Ejemplo:<br>7 Lucía García Receptor<br>12 Ana López Central</p>
   <textarea id="bulk" rows="6" placeholder="7 Lucía García Receptor"></textarea>
@@ -470,7 +482,7 @@ function vRoster(){
   ${ps.length?teamSummary(ps):""}
   <div class="card"><h2>Plantilla (${ps.length})</h2>
   ${ps.length?Object.keys(POSC).filter(k=>ps.some(p=>(POSC[p.pos]?p.pos:"Otro")===k)).map(k=>{const g=ps.filter(p=>(POSC[p.pos]?p.pos:"Otro")===k);return `<div class="pos-h" style="--pc:${pc(k)}">${POSN[k]} (${g.length})</div><ul class="list">${g.map(p=>`<li class="click" onclick="selPlayer='${p.id}';render();scrollTo(0,0)">${avatar(p)}
-    <div class="grow"><div><b>${esc(p.number?"#"+p.number+" ":"")}${esc(p.name)}</b></div><div class="muted">${physLine(p)||esc(p.pos)} · ${pct(p.id)}% asist.</div></div><span>›</span></li>`).join("")}</ul>`}).join("")
+    <div class="grow"><div><b>${esc(p.number?"#"+p.number+" ":"")}${esc(p.name)}</b>${injTag(p)}</div><div class="muted">${physLine(p)||esc(p.pos)} · ${pct(p.id)}% asist.</div></div><span>›</span></li>`).join("")}</ul>`}).join("")
    :`<div class="empty">Todavía no hay nadie. Añade a tu equipo arriba.</div>`}</div>`;
 }
 function teamSummary(ps){const ages=ps.map(p=>age(p.birth)).filter(x=>x!=null);
@@ -525,6 +537,8 @@ function vPlayer(p){
   return `<div class="row" style="margin-bottom:10px"><button class="btn sec small" onclick="selPlayer=null;render()">‹ Plantilla</button></div>
   <div class="card"><div class="row">${avatar(p,true)}<div class="grow"><h2 style="margin:0">${esc(p.number?"#"+p.number+" ":"")}${esc(p.name)}</h2><div style="margin-top:4px">${posTag(p.pos)}</div>${p.phone?`<div class="muted">${esc(p.phone)}</div>`:""}</div></div>
   <div class="row" style="margin-top:10px"><button class="btn sec small" onclick="editPlayer('${p.id}')">Editar</button><button class="btn small" onclick="sendReport('${p.id}')">💬 Mandarle su informe</button><label class="btn sec small" style="margin:0;color:var(--text)">📷 ${p.photo?"Cambiar foto":"Poner foto"}<input type="file" accept="image/*" hidden onchange="setPhoto('${p.id}',this)"></label>${p.photo?`<button class="btn danger small" onclick="player('${p.id}').photo='';save();render()">Quitar foto</button>`:""}${wa?`<a class="btn sec small" href="${wa}" target="_blank" rel="noopener">💬 WhatsApp</a>`:""}</div></div>
+  ${injCard(p)}
+  ${loadCard(p)}
   ${physCard(p)}
   ${testsCard(p)}
   <div class="kpis" style="margin-bottom:12px"><div class="kpi"><b>${pct(p.id)}%</b><small>asistencia</small></div><div class="kpi"><b>${r.pts}</b><small>puntos (${r.pj} PJ)</small></div><div class="kpi"><b>${r.E}</b><small>errores</small></div>
@@ -578,7 +592,7 @@ function vSession(s){
   <details class="card" ${isUp?"open":""}><summary><b>📣 Convocatoria</b> <span class="pill ok">Van ${r.si}</span> <span class="pill bad">No ${r.no}</span> <span class="pill warn">Duda ${r.duda}</span></summary>
    <div class="row" style="margin-top:10px"><a class="btn small" href="https://wa.me/?text=${encodeURIComponent(waText(s))}" target="_blank" rel="noopener">💬 Enviar por WhatsApp</a>${sync.url?`<button class="btn sec small" onclick="copyText(confirmLink(sess('${s.id}')))">🔗 Copiar enlace</button><button class="btn sec small" onclick="pull(true)">↻ Ver respuestas nuevas</button>`:""}</div>
    ${sync.url?"":`<p class="muted">Con la hoja de Google conectada (Más › Datos y Google), las jugadoras confirman solas desde el enlace. Mientras tanto, marca tú sus respuestas:</p>`}
-   <div class="chips" style="margin-top:10px">${ps.map(p=>`<button class="chip ${s.rsvp[p.id]||""}" onclick="cycleRsvp('${s.id}','${p.id}')">${esc(p.number)} ${esc(p.name)}${s.rsvp[p.id]?" · "+RSVP[s.rsvp[p.id]]:""}</button>`).join("")}</div>
+   <div class="chips" style="margin-top:10px">${ps.map(p=>`<button class="chip ${s.rsvp[p.id]||""}" onclick="cycleRsvp('${s.id}','${p.id}')">${esc(p.number)} ${esc(p.name)}${injured(p)?" 🩹":""}${s.rsvp[p.id]?" · "+RSVP[s.rsvp[p.id]]:""}</button>`).join("")}</div>
    <p class="muted">Toca un nombre para cambiar su respuesta: Voy → No voy → Duda → sin respuesta.</p></details>
   <details class="card" ${isUp?"":"open"}><summary><b>✅ Pasar lista</b> <span class="pill">${cnt("P")+cnt("T")}/${ps.length}</span></summary>
   <div class="row" style="margin:10px 0">${Object.keys(ATT).map(k=>`<span class="pill">${ATT[k]}: ${cnt(k)}</span>`).join("")}</div>
@@ -587,6 +601,7 @@ function vSession(s){
     <div class="att">${Object.keys(ATT).map(k=>`<button title="${ATT[k]}" class="${k} ${s.att[p.id]===k?"on":""}" onclick="mark('${s.id}','${p.id}','${k}')">${k}</button>`).join("")}</div></li>`).join("")}</ul>
     <p class="muted">P = presente · A = ausente · T = tarde · J = justificado</p>`:`<div class="empty">Primero añade jugadoras en Plantilla.</div>`}</details>
   ${s.type==="partido"?rivalCard(s)+liveStats(s):planCard(s)}
+  ${wellCard(s)}
   <div class="card"><h3>Vídeos de esta sesión</h3>${videoList(db.videos.filter(v=>v.session===s.id))||'<div class="muted">Ninguno. Añádelos en Más › Vídeos.</div>'}</div>
   <button class="btn danger" onclick="delSession('${s.id}')">Eliminar sesión</button>`;
 }
@@ -666,7 +681,7 @@ function liveStats(s){
   const help={pts:"Toca cómo gana el punto cada jugadora, o “Error” si lo regala. Los dos botones de arriba apuntan los puntos del rival.",
     rec:"Nota de cada recepción: 0 = error o punto rival, 1 = mala (sin ataque), 2 = buena (pocas opciones), 3 = perfecta (todas las opciones).",
     map:"",srv:"Nota de cada saque: 0 = error, 1 = fácil para el rival, 2 = les complica, 3 = ace. Va aparte del marcador: si fue ace o error, apúntalo también en Puntos."}[statMode];
-  return `<div class="card"><h2>📊 Partido en directo</h2>
+  return `<div class="card"><h2>📊 Partido en directo</h2>${liveShare(s)}
   <div class="seg" style="margin-bottom:8px">${[1,2,3,4,5].map(n=>`<button class="${n===set?"on":""}" onclick="setSet('${s.id}',${n})">Set ${n}</button>`).join("")}</div>
   ${setBanner(s)}
   <div class="score"><div>${us}<small>${esc(db.team)}</small></div><span class="sep">–</span><div>${them}<small>${esc(s.title||"Rival")}</small></div></div>
@@ -713,7 +728,7 @@ function actaCard(s,set){const st=actaState(s,set);
   </div>`}
 function actaLineup(sid,n){const s=sess(sid);s.acta=s.acta||{};const prev=s.acta[n]||s.acta[n-1]||null;const def=prev?prev.lineup:db.lineup.slots;
   const ps=sortedPlayers().filter(p=>present(s,p.id));const all=ps.length>=6?ps:sortedPlayers();
-  const sel=(i)=>`<label class="pos-sel"><small>Posición ${ROMAN[i]}${i===0?" (saca)":""}</small><select name="p${i}"><option value="">—</option>${all.map(p=>`<option value="${p.id}" ${def[i]===p.id?"selected":""}>${esc(pname(p.id))}</option>`).join("")}</select></label>`;
+  const sel=(i)=>`<label class="pos-sel"><small>Posición ${ROMAN[i]}${i===0?" (saca)":""}</small><select name="p${i}"><option value="">—</option>${all.map(p=>`<option value="${p.id}" ${def[i]===p.id?"selected":""}>${esc(pname(p.id))}${injured(p)?" 🩹":""}</option>`).join("")}</select></label>`;
   const lib=prev?prev.libero:db.lineup.libero;const srv=prev?(s.acta[n]?prev.serve:(prev.serve==="us"?"them":"us")):"us";
   const d=$("#dlg");d.innerHTML=`<form method="dialog" id="alf"><h3>Rotación inicial · Set ${n}</h3><p class="muted" style="margin-top:0">Como en la hoja de rotación: la de la posición I es la que saca primero.</p>
    <div class="lineup-grid"><div class="net">RED</div>${[3,2,1,4,5,0].map(sel).join("")}</div>
@@ -857,6 +872,105 @@ function playerReport(p){const {rows}=seasonRows();const r=rows.find(x=>x.p.id==
   const tl=TESTS.map(t=>{const x=testsOf(p.id,t.k);if(!x.length)return null;const last=x[x.length-1],first=x[0];const d=x.length>1?+(last.v-first.v).toFixed(1):0;return `• ${t.n}: ${last.v} ${t.u}${d?` (${d>0?"+":""}${d} desde ${fmtDate(first.date)})`:""}`}).filter(Boolean);
   if(tl.length)L.push("","💪 *Pruebas físicas*",...tl);L.push("","¡Sigue así! "+(db.slogan||"Más que un equipo, una familia")+" ❤️🖤");return L.join("\n")}
 function sendReport(id){const p=player(id);const g=(p.phone||"").replace(/\D/g,"");const url=`https://wa.me/${g?(/^[67]\d{8}$/.test(g)?"34"+g:g):""}?text=${encodeURIComponent(playerReport(p))}`;window.open(url,"_blank","noopener")}
+
+/* ---------- IMPORTAR PLANTILLA DE LA FEDERACIÓN ---------- */
+function titleCase(n){return String(n||"").toLowerCase().replace(/(^|[\s\-'])([a-záéíóúñü])/g,(m,a,b)=>a+b.toUpperCase()).replace(/\b(De|Del|La|Las|Los|Y)\b/g,w=>w.toLowerCase()).replace(/^./,c=>c.toUpperCase())}
+function fedTeams(){const out=[];(db.leagues||[]).forEach(L=>L.teams.forEach(t=>{if(t.mine&&(t.players||[]).length)out.push({L,t})}));return out}
+function importFed(){const T=fedTeams();const d=$("#dlg");
+  if(!T.length){toast("Aún no hay plantillas de la federación. Abre Más › Ligas para que se descarguen.");return}
+  const hasDemo=db.players.some(p=>p.demo);
+  d.innerHTML=`<form method="dialog" id="imf"><h3>⬇️ Importar de la federación</h3><p class="muted" style="margin-top:0">Se añaden los nombres de la ficha federativa. Después pon dorsal y posición a cada uno. Solo se importan nombres.</p>
+   ${T.map(({L,t},i)=>`<label class="radio"><input type="radio" name="t" value="${i}" ${i?"":"checked"}> <b>${esc(t.name)}</b> <span class="muted">· ${esc(L.name)} · ${t.players.length} jugadores</span></label>`).join("")}
+   ${hasDemo?`<label class="radio"><input type="checkbox" name="demo" checked> Quitar antes los datos de ejemplo</label>`:""}
+   <div class="row" style="margin-top:14px;justify-content:flex-end"><button value="cancel" class="btn sec">Cancelar</button><button value="ok" class="btn">Importar</button></div></form>`;
+  d.showModal();d.onclose=()=>{if(d.returnValue!=="ok")return;const f=$("#imf");const {t}=T[+f.querySelector("input[name=t]:checked").value];
+    if(f.demo&&f.demo.checked){["players","sessions","notes","fees","tests"].forEach(k=>db[k]=(db[k]||[]).filter(x=>!x.demo));try{localStorage.setItem("voleibol-seeded","1")}catch(e){}}
+    const have=new Set(db.players.map(p=>norm(p.name)));let n=0;
+    t.players.forEach(fp=>{const name=titleCase(fp.name);if(have.has(norm(name)))return;db.players.push({id:uid(),name,number:fp.num||"",pos:fp.pos&&POS.includes(fp.pos)?fp.pos:"Otro",phone:"",fed:fp.id});have.add(norm(name));n++});
+    save();render();toast(n?`${n} jugadores importados. Pon dorsal y posición a cada uno.`:"Ya estaban todos en la plantilla")}}
+
+/* ---------- LESIONES ---------- */
+const injured=p=>!!(p&&p.inj);
+const injTag=p=>injured(p)?` <span class="pill bad" title="${esc(p.inj.what||"Lesión")}">🩹${p.inj.back?" hasta "+fmtDate(p.inj.back).replace(/^\S+\s/,""):""}</span>`:"";
+function injCard(p){const I=p.inj;const hist=(p.injHist||[]).slice(-3).reverse();
+  return `<div class="card ${I?"injcard":""}"><h3>🩹 Lesiones</h3>
+   ${I?`<p style="margin-top:0"><b>${esc(I.what||"Lesión")}</b><br><span class="muted">Desde ${fmtDate(I.since)}${I.back?" · vuelta prevista "+fmtDate(I.back):""}</span></p><div class="row"><button class="btn small" onclick="injEdit('${p.id}')">✎ Editar</button><button class="btn sec small" onclick="injClear('${p.id}')">✅ Dar de alta</button></div>`
+     :`<div class="row"><span class="muted grow">Disponible</span><button class="btn sec small" onclick="injEdit('${p.id}')">Marcar lesión</button></div>`}
+   ${hist.length?`<p class="muted" style="margin-bottom:0">Anteriores: ${hist.map(h=>esc(h.what||"lesión")+" ("+fmtDate(h.since)+" → "+fmtDate(h.end)+")").join(" · ")}</p>`:""}</div>`}
+function injEdit(id){const p=player(id);const I=p.inj||{since:today()};const d=$("#dlg");
+  d.innerHTML=`<form method="dialog" id="inf"><h3>🩹 Lesión · ${esc(p.name)}</h3><label>Qué tiene</label><input name="what" value="${esc(I.what||"")}" placeholder="Ej.: esguince tobillo derecho">
+   <div class="row"><div class="grow"><label>Desde</label><input name="since" type="date" value="${I.since||today()}"></div><div class="grow"><label>Vuelta prevista</label><input name="back" type="date" value="${I.back||""}"></div></div>
+   <div class="row" style="margin-top:14px;justify-content:flex-end"><button value="cancel" class="btn sec">Cancelar</button><button value="ok" class="btn">Guardar</button></div></form>`;
+  d.showModal();d.onclose=()=>{if(d.returnValue!=="ok")return;const f=$("#inf");p.inj={what:f.what.value.trim(),since:f.since.value||today(),back:f.back.value};save();render()}}
+function injClear(id){const p=player(id);if(!p.inj)return;p.injHist=p.injHist||[];p.injHist.push({...p.inj,end:today()});delete p.inj;save();render();toast("¡"+p.name.split(" ")[0]+" de alta!")}
+function injHomeCard(){const L=db.players.filter(injured);if(!L.length)return "";
+  return `<div class="card"><h3>🩹 Lesionadas (${L.length})</h3><ul class="list">${L.map(p=>`<li class="click" onclick="tab='roster';selPlayer='${p.id}';render()">${avatar(p)}<div class="grow"><b>${esc(p.name)}</b><div class="muted">${esc(p.inj.what||"Lesión")}${p.inj.back?" · vuelve "+fmtDate(p.inj.back):""}</div></div><span>›</span></li>`).join("")}</ul></div>`}
+
+/* ---------- CARGA Y BIENESTAR ---------- */
+const WQ=[["rpe","💥 Dureza del entreno","1 = muy suave · 10 = máximo esfuerzo"],["fat","😮‍💨 Cansancio","1 = fresca · 10 = agotada"],["sleep","😴 Sueño de anoche","1 = fatal · 10 = genial"],["pain","🤕 Dolor o molestias","1 = nada · 10 = mucho"]];
+function sessMin(s){const p=(s.plan||[]).map(id=>db.exercises.find(e=>e.id===id)).filter(Boolean).reduce((n,e)=>n+(+e.mins||0),0);return +s.dur||p||90}
+function wellAlert(w){return w&&(w.pain>=7||w.fat>=8||w.sleep<=3)}
+function weekKey(d){const x=new Date(d+"T12:00");const day=(x.getDay()+6)%7;x.setDate(x.getDate()-day);return x.toISOString().slice(0,10)}
+function loadOf(pid){const W={};db.sessions.forEach(s=>{const w=(s.well||{})[pid];if(!w)return;const k=weekKey(s.date);W[k]=(W[k]||0)+w.rpe*sessMin(s)});return W}
+function acwr(pid){const W=loadOf(pid);const cur=W[weekKey(today())]||0;const prev=[1,2,3,4].map(i=>{const d=new Date(weekKey(today())+"T12:00");d.setDate(d.getDate()-7*i);return W[d.toISOString().slice(0,10)]||0});const ch=prev.reduce((a,b)=>a+b,0)/4;return {cur,ch,r:ch?cur/ch:null,W}}
+function wellLink(s){return appUrl()+"?w="+s.id+"&s="+encodeURIComponent(sync.url)}
+function wellCard(s){s.well=s.well||{};const ps=sortedPlayers().filter(p=>present(s,p.id)||s.well[p.id]);const got=Object.keys(s.well).length;const min=sessMin(s);
+  return `<details class="card" ${got?"open":""}><summary><b>💪 Carga y bienestar</b> <span class="pill">${got}/${ps.length||db.players.length}</span></summary>
+   <p class="muted">Después del ${s.type==="partido"?"partido":"entreno"}, cada jugadora dice lo duro que fue y cómo está. Carga = dureza × minutos (${min} min${s.dur?"":` <button class="linkbtn" onclick="setDur('${s.id}')">cambiar</button>`}).</p>
+   ${sync.url?`<div class="row"><a class="btn small" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(`💪 ${db.team}: ¿qué tal el ${s.type==="partido"?"partido":"entreno"} de ${fmtDate(s.date)}? Rellena tu valoración (30 segundos) 👉 ${wellLink(s)}`)}">💬 Pedir valoración por WhatsApp</a><button class="btn sec small" onclick="copyText(wellLink(sess('${s.id}')))">🔗 Copiar enlace</button></div>`:`<p class="muted">Con la hoja de Google conectada, las jugadoras lo rellenan solas desde un enlace. Mientras tanto, toca un nombre y apúntalo tú.</p>`}
+   <ul class="list">${ps.map(p=>{const w=s.well[p.id];return `<li class="click" onclick="wellEdit('${s.id}','${p.id}')">${avatar(p)}<div class="grow"><b>${esc(p.name)}</b>${w?`<div class="muted">Dureza ${w.rpe} · cansancio ${w.fat} · sueño ${w.sleep} · dolor ${w.pain}${w.note?" · “"+esc(w.note)+"”":""}</div>`:`<div class="muted">Sin respuesta</div>`}</div>${w?`<span class="pill ${wellAlert(w)?"bad":"ok"}">${w.rpe*min}</span>`:""}</li>`}).join("")}</ul></details>`}
+function setDur(sid){const v=prompt("Minutos que duró la sesión",sessMin(sess(sid)));if(v&&+v>0){sess(sid).dur=+v;keepScroll(save)}}
+function wellForm(w){w=w||{rpe:5,fat:5,sleep:7,pain:1};return WQ.map(([k,l,h])=>`<div class="wq"><label>${l} <b id="wv-${k}">${w[k]}</b></label><input type="range" min="1" max="10" step="1" name="${k}" value="${w[k]}" oninput="document.getElementById('wv-${k}').textContent=this.value"><small class="muted">${h}</small></div>`).join("")+`<label>Algo que quieras contar (opcional)</label><input name="note" maxlength="200" value="${esc(w.note||"")}">`}
+function wellRead(f){const o={};WQ.forEach(([k])=>o[k]=+f[k].value);o.note=f.note.value.trim();return o}
+function wellEdit(sid,pid){const s=sess(sid);const p=player(pid);const d=$("#dlg");
+  d.innerHTML=`<form method="dialog" id="wf"><h3>💪 ${esc(p.name)}</h3>${wellForm(s.well&&s.well[pid])}<div class="row" style="margin-top:14px;justify-content:flex-end">${s.well&&s.well[pid]?`<button value="del" class="btn danger">Borrar</button>`:""}<button value="cancel" class="btn sec">Cancelar</button><button value="ok" class="btn">Guardar</button></div></form>`;
+  d.showModal();d.onclose=()=>{s.well=s.well||{};if(d.returnValue==="del"){delete s.well[pid];keepScroll(save)}else if(d.returnValue==="ok"){s.well[pid]={...wellRead($("#wf")),t:Date.now()};keepScroll(save)}}}
+function loadCard(p){const {cur,ch,r,W}=acwr(p.id);const keys=Object.keys(W).sort().slice(-8);if(!keys.length)return "";const mx=Math.max(...keys.map(k=>W[k]),1);
+  const last=db.sessions.filter(s=>(s.well||{})[p.id]).sort((a,b)=>b.date.localeCompare(a.date))[0];const lw=last&&last.well[p.id];
+  return `<div class="card"><h3>💪 Carga de entrenamiento</h3>
+   <div class="loadbars">${keys.map(k=>`<div title="Semana del ${fmtDate(k)}: ${W[k]}"><i style="height:${Math.round(W[k]*100/mx)}%"></i><small>${k.slice(8,10)}/${k.slice(5,7)}</small></div>`).join("")}</div>
+   <div class="kpis" style="margin-top:8px"><div class="kpi"><b>${cur}</b><small>carga esta semana</small></div><div class="kpi"><b>${Math.round(ch)}</b><small>media 4 semanas</small></div><div class="kpi ${r>1.5?"warnk":""}"><b>${r?r.toFixed(2):"–"}</b><small>ratio</small></div></div>
+   ${r>1.5?`<p class="warntxt">⚠️ Esta semana lleva bastante más carga de lo normal (más de 1,5 veces su media). Más riesgo de lesión: vigila o baja la intensidad.</p>`:r&&r<.8&&ch?`<p class="muted">Esta semana va por debajo de su media.</p>`:""}
+   ${lw?`<p class="muted" style="margin-bottom:0">Última valoración (${fmtDate(last.date)}): cansancio ${lw.fat}, sueño ${lw.sleep}, dolor ${lw.pain}${lw.note?" · “"+esc(lw.note)+"”":""}</p>`:""}</div>`}
+function loadHomeCard(){const out=[];db.players.forEach(p=>{if(injured(p))return;const last=db.sessions.filter(s=>(s.well||{})[p.id]&&s.date>=addDays(today(),-7)).sort((a,b)=>b.date.localeCompare(a.date))[0];const w=last&&last.well[p.id];const {r}=acwr(p.id);
+  const why=[];if(w&&w.pain>=7)why.push("dolor "+w.pain);if(w&&w.fat>=8)why.push("cansancio "+w.fat);if(w&&w.sleep<=3)why.push("duerme mal");if(r>1.5)why.push("carga ×"+r.toFixed(1));if(why.length)out.push({p,why})});
+  if(!out.length)return "";return `<div class="card"><h3>⚠️ Ojo con la carga</h3><ul class="list">${out.map(x=>`<li class="click" onclick="tab='roster';selPlayer='${x.p.id}';render()">${avatar(x.p)}<div class="grow"><b>${esc(x.p.name)}</b><div class="muted">${x.why.join(" · ")}</div></div><span>›</span></li>`).join("")}</ul></div>`}
+function addDays(d,n){const x=new Date(d+"T12:00");x.setDate(x.getDate()+n);return x.toISOString().slice(0,10)}
+
+/* ---------- MARCADOR EN DIRECTO ---------- */
+function liveOf(s){const sc=setScores(s);const set=s.set||1;const st=actaState(s,set);return {sets:sc.sets,won:sc.won,lost:sc.lost,set,srv:st?st.srv:null,at:Date.now()}}
+function liveLink(s){return appUrl()+"?live="+s.id+"&s="+encodeURIComponent(sync.url)}
+function liveShare(s){return sync.url?`<div class="row" style="margin:-4px 0 10px"><a class="btn sec small" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(`📺 Sigue en directo el partido ${db.team} – ${s.title||"rival"} 👉 ${liveLink(s)}`)}">📺 Marcador para las familias</a><button class="btn sec small" onclick="copyText(liveLink(sess('${s.id}')))">🔗 Copiar</button></div>`:""}
+
+/* ---------- PÁGINAS PÚBLICAS (jugadoras y familias) ---------- */
+async function pubGet(url,a,sid){const r=await fetch(url+(url.includes("?")?"&":"?")+"a="+a+"&sid="+encodeURIComponent(sid));const j=await r.json();
+  if(j.db){const s=j.db.sessions.find(x=>x.id===sid);return s?{ok:true,team:j.db.team,session:s,players:j.db.players,live:s.live||null}:{ok:false}}return j}
+function pubShell(){$("#tabs").style.display="none";const sd=$("#syncDot");if(sd)sd.style.display="none";document.body.classList.add("pub")}
+async function wellPage(sid,url){pubShell();const app=$("#app");app.innerHTML=`<div class="card empty">Cargando…</div>`;
+  let data=null;try{data=await pubGet(url,"pub",sid)}catch(e){}
+  if(!data||!data.ok){app.innerHTML=`<div class="card empty">No se ha encontrado esta sesión. Pide a tu entrenador un enlace nuevo.</div>`;return}
+  const s=data.session;$("#teamTitle").textContent="🏐 "+data.team;const ps=[...data.players].sort((a,b)=>(+a.number||999)-(+b.number||999));
+  let me=null;try{me=localStorage.getItem("voleibol-me")}catch(e){}
+  const draw=msg=>{app.innerHTML=`<div class="card"><h2>💪 ¿Qué tal el ${s.type==="partido"?"partido":"entreno"}?</h2><div class="muted">${fmtDate(s.date)}${s.title?" · "+esc(s.title):""}</div></div>
+   <form class="card" id="wf" onsubmit="event.preventDefault();wellSend()"><label>¿Quién eres?</label><select name="me" required><option value="">Elige tu nombre…</option>${ps.map(p=>`<option value="${p.id}" ${p.id===me?"selected":""}>${esc(p.number)} ${esc(p.name)}</option>`).join("")}</select>
+   ${wellForm()}<div class="row" style="margin-top:14px"><button class="btn grow">Enviar</button></div>${msg?`<p style="margin-bottom:0"><b>${msg}</b></p>`:""}</form>
+   <p class="muted" style="text-align:center">Solo lo ve tu entrenador. Sirve para ajustar los entrenos y evitar lesiones.</p>`};
+  window.wellSend=async()=>{const f=$("#wf");const pid=f.me.value;if(!pid){alert("Elige tu nombre");return}me=pid;try{localStorage.setItem("voleibol-me",pid)}catch(e){}
+    const v=wellRead(f);app.querySelector("button.btn").disabled=true;
+    try{const r=await fetch(url,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({a:"well",sid,pid,v})});const j=await r.json();if(!j.ok)throw 0;
+      app.innerHTML=`<div class="card empty"><div style="font-size:3rem">✅</div><h2>¡Gracias!</h2><p>Tu valoración está guardada.</p></div>`}catch(e){draw("⚠️ No se pudo enviar. Inténtalo de nuevo.")}};
+  draw()}
+async function livePage(sid,url){pubShell();const app=$("#app");app.innerHTML=`<div class="card empty">Cargando marcador…</div>`;let fails=0;
+  const tick=async()=>{let d=null;try{d=await pubGet(url,"live",sid)}catch(e){}
+    if(!d||!d.ok){if(++fails>2)app.innerHTML=`<div class="card empty">No se encuentra el partido.</div>`;return}fails=0;$("#teamTitle").textContent="🏐 "+d.team;
+    const s=d.session,L=d.live;const cur=L&&L.sets.find(x=>x.n===L.set)||{us:0,them:0};const fresh=L&&Date.now()-L.at<15*60000;
+    app.innerHTML=`<div class="livebox"><div class="muted">${fmtDate(s.date)}${s.time?" · "+s.time:""}${s.place?" · "+esc(s.place):""}</div>
+     <div class="liveteams"><div><img src="crest.png" alt="" width="64" height="64"><b>${esc(d.team)}</b></div><div class="livesets">${L?L.won:0} – ${L?L.lost:0}<small>sets</small></div><div><span class="rivalball">🏐</span><b>${esc(s.title||"Rival")}</b></div></div>
+     ${L?`<div class="livescore"><span>${cur.us}</span><i>–</i><span>${cur.them}</span></div><div class="muted">Set ${L.set}${L.srv?" · "+(L.srv==="us"?"saca "+esc(d.team):"saca el rival"):""}</div>
+       <div class="livehist">${L.sets.filter(x=>x.n!==L.set||x.us>=25||x.them>=25).map(x=>`<span class="pill ${x.us>x.them?"ok":"bad"}">Set ${x.n}: ${x.us}-${x.them}</span>`).join("")}</div>
+       <div class="muted" style="margin-top:14px">${fresh?"🔴 En directo · se actualiza solo":"Actualizado "+new Date(L.at).toLocaleTimeString("es-ES",{hour:"2-digit",minute:"2-digit"})}</div>`
+      :`<p class="muted">El partido aún no ha empezado. Esta página se actualiza sola.</p>`}</div>`};
+  tick();setInterval(tick,15000)}
 
 /* ---------- ESTADÍSTICAS DE TEMPORADA ---------- */
 function seasonRows(){
@@ -1707,8 +1821,8 @@ function vSettings(){
   <div class="row"><input id="tname" class="grow" value="${esc(db.team)}"><button class="btn" onclick="db.team=$('#tname').value.trim()||'Mi equipo';save();render();toast('Guardado')">Guardar</button></div></div>
   <div class="card"><h2>☁️ Hoja de Google</h2>
   ${sync.url?`<p style="margin-top:0">✅ Conectado. Los cambios se guardan solos en la hoja y se cargan al abrir la app.</p><p class="muted">${sync.last?"Última sincronización: "+new Date(sync.last).toLocaleString("es-ES"):""}${sync.err?" · ⚠️ el último intento falló":""}</p>
-   <div class="row"><button class="btn" onclick="pull(true)">↻ Sincronizar ahora</button><button class="btn sec small" onclick="copyText(appUrl()+'?sync='+encodeURIComponent(sync.url))">🔗 Enlace para otro entrenador</button><button class="btn danger small" onclick="disconnect()">Desconectar</button></div>
-   <p class="muted">El enlace para otro entrenador conecta su móvil a la misma hoja. No lo compartas con las jugadoras: ellas usan el enlace de cada convocatoria.</p>`
+   <div class="row"><button class="btn" onclick="pull(true)">↻ Sincronizar ahora</button><button class="btn sec small" onclick="copyText(appUrl()+'?sync='+encodeURIComponent(sync.url)+'&k='+syncKey())">🔗 Enlace para otro entrenador</button><button class="btn danger small" onclick="disconnect()">Desconectar</button></div>
+   ${sync.keyErr?`<p class="warntxt">⚠️ La hoja tiene otra clave: este móvil no puede leer ni guardar. Desconéctalo y vuelve a conectarlo con el “Enlace para otro entrenador” del móvil principal.</p>`:""}<p class="muted">El enlace para otro entrenador lleva la clave del equipo y conecta su móvil a la misma hoja. No lo compartas con las jugadoras: ellas usan los enlaces de convocatoria y de valoración, que solo dan acceso a lo justo.</p>`
   :`<p class="muted" style="margin-top:0">Pega la dirección de la aplicación web de la hoja (termina en <code>/exec</code>). Así todos los entrenadores ven los mismos datos y las jugadoras pueden confirmar asistencia desde un enlace.</p>
    <div class="row"><input id="surl" class="grow" type="url" placeholder="https://script.google.com/macros/s/…/exec"><button class="btn" onclick="connect($('#surl').value)">Conectar</button></div>`}
   </div>
@@ -1737,14 +1851,15 @@ function wipe(){if(!confirm("¿Seguro? Se borra todo en este móvil."))return;if
 let pushT=null,busy=false;
 function syncDot(){const el=$("#syncDot");if(!el)return;el.textContent=!sync.url?"":busy?"⟳ guardando":sync.err?"⚠️ sin conexión":sync.dirty?"● pendiente":"☁️ ok"}
 function schedulePush(){clearTimeout(pushT);pushT=setTimeout(push,1500);syncDot()}
-async function api(body){const r=await fetch(sync.url,body?{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(body)}:{});if(!r.ok)throw new Error("HTTP "+r.status);return r.json()}
+function syncKey(){if(!sync.k){sync.k=Array.from(crypto.getRandomValues(new Uint8Array(18)),b=>"abcdefghijkmnopqrstuvwxyz23456789"[b%33]).join("");saveSyncState()}return sync.k}
+async function api(body){const u=sync.url+(sync.url.includes("?")?"&":"?")+"k="+encodeURIComponent(syncKey());const r=await fetch(body?sync.url:u,body?{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({...body,k:syncKey()})}:{});if(!r.ok)throw new Error("HTTP "+r.status);const j=await r.json();if(j&&j.error==="clave"){sync.keyErr=true;throw new Error("clave")}sync.keyErr=false;return j}
 function mergeArr(remote,local,isSession){const m=new Map((remote||[]).map(x=>[x.id,x]));
   (local||[]).forEach(x=>{const r=m.get(x.id);
     if(isSession&&r){const rt=r.rsvpT||{},lt=x.rsvpT||{};const rs={...(x.rsvp||{})};Object.keys({...(r.rsvp||{}),...rt}).forEach(k=>{if((rt[k]||0)>(lt[k]||0)){if(r.rsvp&&r.rsvp[k])rs[k]=r.rsvp[k];else delete rs[k]}});
-      const T={...lt};Object.keys(rt).forEach(k=>{if((rt[k]||0)>(T[k]||0))T[k]=rt[k]});m.set(x.id,{...x,rsvp:rs,rsvpT:T})}
+      const T={...lt};Object.keys(rt).forEach(k=>{if((rt[k]||0)>(T[k]||0))T[k]=rt[k]});const W={...(r.well||{})};Object.entries(x.well||{}).forEach(([k,v])=>{if(!W[k]||(v.t||0)>=(W[k].t||0))W[k]=v});m.set(x.id,{...x,rsvp:rs,rsvpT:T,well:W})}
     else m.set(x.id,x)});return [...m.values()]}
 function merge(remote,local){const out=Object.assign(blank(),remote);["players","videos","exercises","notes","fees","money","lineups","tests","leagues","plays","systems"].forEach(k=>out[k]=mergeArr(remote[k],local[k]));out.sessions=mergeArr(remote.sessions,local.sessions,true);out.team=local.team||remote.team;out.rivals={...(remote.rivals||{})};Object.entries(local.rivals||{}).forEach(([k,v])=>{if(!out.rivals[k]||(v.at||0)>=(out.rivals[k].at||0))out.rivals[k]=v});out.lineup=local.lineup||remote.lineup;return out}
-async function push(){if(!sync.url||busy)return;busy=true;syncDot();
+async function push(){if(!sync.url||busy)return;busy=true;syncDot();const td=today();db.sessions.forEach(x=>{if(x.type==="partido"&&x.date>=addDays(td,-1)&&x.date<=addDays(td,1)&&evs(x).length){const L=liveOf(x);const o=x.live;if(!o||JSON.stringify({...o,at:0})!==JSON.stringify({...L,at:0}))x.live=L}});
   try{let res=await api({a:"save",base:sync.base,db});
     if(res.conflict){db=merge(res.db,db);db.updatedAt=Date.now();persist();res=await api({a:"save",base:res.db.updatedAt,db});if(!document.querySelector("dialog[open]"))keepScroll(()=>{})}
     if(!res.ok)throw new Error(res.error||"error");
@@ -1765,15 +1880,15 @@ async function connect(url){url=(url||"").trim();if(!/^https:\/\/script\.google(
     else{sync.base=res.db?res.db.updatedAt||0:0;sync.dirty=true;if(!db.updatedAt)db.updatedAt=Date.now()}
     saveSyncState();if(sync.dirty)await push();
     toast(sync.err?"Conectado, pero no se pudo guardar":"¡Conectado a la hoja de Google!")}
-  catch(e){busy=false;sync.url="";alert("No se pudo conectar. Revisa que la aplicación web esté implementada con acceso “Cualquier usuario”.")}
+  catch(e){busy=false;sync.url="";alert(String(e.message)==="clave"?"Esta hoja ya está protegida con la clave del equipo. Pide al entrenador principal el “Enlace para otro entrenador” desde su app (Más › Datos y Google).":"No se pudo conectar. Revisa que la aplicación web esté implementada con acceso “Cualquier usuario”.")}
   saveSyncState();render()}
-function disconnect(){if(!confirm("¿Desconectar este móvil de la hoja? Los datos se quedan en el móvil y en la hoja."))return;sync={url:"",base:0,dirty:false};saveSyncState();render()}
+function disconnect(){if(!confirm("¿Desconectar este móvil de la hoja? Los datos se quedan en el móvil y en la hoja."))return;sync={url:"",base:0,dirty:false,k:sync.k};saveSyncState();render()}
 
 /* ---------- PÁGINA DE CONFIRMACIÓN PARA JUGADORAS ---------- */
 async function confirmPage(sid,url){
   $("#tabs").style.display="none";$("#syncDot").style.display="none";
   const app=$("#app");app.innerHTML=`<div class="card empty">Cargando…</div>`;
-  let data=null;try{const r=await fetch(url);data=(await r.json()).db}catch(e){}
+  let data=null;try{const j=await pubGet(url,"pub",sid);if(j.ok)data={team:j.team,players:j.players,sessions:[j.session]}}catch(e){}
   const s=data&&data.sessions.find(x=>x.id===sid);
   if(!s){app.innerHTML=`<div class="card empty">No se ha encontrado este evento. Pide a tu entrenador un enlace nuevo.</div>`;return}
   $("#teamTitle").textContent="🏐 "+data.team;
@@ -1791,12 +1906,14 @@ async function confirmPage(sid,url){
 /* ---------- arranque ---------- */
 const QP=new URLSearchParams(location.search);
 if(QP.get("c")&&QP.get("s")){confirmPage(QP.get("c"),QP.get("s"))}
+else if(QP.get("w")&&QP.get("s")){wellPage(QP.get("w"),QP.get("s"))}
+else if(QP.get("live")&&QP.get("s")){livePage(QP.get("live"),QP.get("s"))}
 else{
   let seeded=null;try{seeded=localStorage.getItem("voleibol-seeded")}catch(e){}
   if(!db.players.length&&!seeded&&!QP.get("sync"))loadDemo(true);
   else if(db.players.some(p=>p.demo)&&!(db.tests||[]).some(x=>x.demo)){demoTests(db.players.filter(p=>p.demo));persist()}
   render();
-  if(QP.get("sync")&&!sync.url){const u=QP.get("sync");try{history.replaceState(null,"",appUrl())}catch(e){}if(confirm("¿Conectar esta app a la hoja de Google del equipo?"))connect(u)}
+  if(QP.get("sync")&&!sync.url){const u=QP.get("sync");if(QP.get("k")){sync.k=QP.get("k");saveSyncState()}try{history.replaceState(null,"",appUrl())}catch(e){}if(confirm("¿Conectar esta app a la hoja de Google del equipo?"))connect(u)}
   else if(sync.url)pull(false);
   document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"&&sync.url)pull(false)});
   if("serviceWorker" in navigator&&location.protocol.startsWith("http"))navigator.serviceWorker.register("sw.js").catch(()=>{});

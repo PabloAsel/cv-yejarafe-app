@@ -1,5 +1,5 @@
 /**
- * CV Yejarafe · Conexión entre la app y esta hoja de Google.
+ * CV Yejarafe · Conexión entre la app y esta hoja de Google. (versión 2)
  *
  * Cómo instalarlo (una sola vez, 3 minutos):
  *  1. En la hoja: menú Extensiones › Apps Script.
@@ -20,7 +20,24 @@
 const DATA_SHEET = '_datos';
 const CHUNK = 45000; // caracteres por celda (el límite de Sheets es 50.000)
 
+// Versión 2: los datos completos solo se leen con la clave del equipo (la pone la app de los entrenadores).
+// Las jugadoras y las familias solo reciben lo justo: nombres para confirmar y el marcador.
+function key() { return PropertiesService.getScriptProperties().getProperty('KEY') || ''; }
+
 function doGet(e) {
+  const p = (e && e.parameter) || {};
+  if (p.a === 'pub' || p.a === 'live') {
+    const db = readDb();
+    if (!db) return json({ ok: false, error: 'sin datos' });
+    const s = db.sessions.find(x => x.id === p.sid);
+    if (!s) return json({ ok: false, error: 'no encontrado' });
+    const ses = { id: s.id, type: s.type, date: s.date, time: s.time || '', title: s.title || '', place: s.place || '' };
+    if (p.a === 'live') return json({ ok: true, team: db.team, session: ses, live: s.live || null });
+    const players = db.players.map(x => ({ id: x.id, name: x.name, number: x.number || '' }));
+    return json({ ok: true, team: db.team, session: ses, players: players });
+  }
+  const k = key();
+  if (k && p.k !== k) return json({ ok: false, error: 'clave' });
   return json({ ok: true, db: readDb() });
 }
 
@@ -30,6 +47,9 @@ function doPost(e) {
   lock.waitLock(20000);
   try {
     if (body.a === 'save') {
+      const k = key();
+      if (k && body.k !== k) return json({ ok: false, error: 'clave' });
+      if (!k && body.k) PropertiesService.getScriptProperties().setProperty('KEY', String(body.k));
       const cur = readDb();
       // Si otro móvil guardó después de la última vez que este móvil leyó, devolvemos los datos actuales para combinarlos.
       if (cur && cur.updatedAt && body.base !== cur.updatedAt && cur.updatedAt > (body.base || 0)) {
@@ -48,6 +68,21 @@ function doPost(e) {
       }
       s.rsvp = s.rsvp || {}; s.rsvpT = s.rsvpT || {};
       s.rsvp[body.pid] = body.v; s.rsvpT[body.pid] = Date.now();
+      db.updatedAt = Date.now();
+      writeDb(db);
+      return json({ ok: true });
+    }
+    if (body.a === 'well') {
+      const db = readDb();
+      if (!db) return json({ ok: false, error: 'sin datos' });
+      const s = db.sessions.find(x => x.id === body.sid);
+      const v = body.v || {};
+      const okN = n => typeof n === 'number' && n >= 1 && n <= 10;
+      if (!s || !db.players.some(p => p.id === body.pid) || !okN(v.rpe) || !okN(v.fat) || !okN(v.sleep) || !okN(v.pain)) {
+        return json({ ok: false, error: 'no encontrado' });
+      }
+      s.well = s.well || {};
+      s.well[body.pid] = { rpe: v.rpe, fat: v.fat, sleep: v.sleep, pain: v.pain, note: String(v.note || '').slice(0, 200), t: Date.now() };
       db.updatedAt = Date.now();
       writeDb(db);
       return json({ ok: true });
@@ -137,6 +172,16 @@ function writeViews(db) {
       .forEach((r, i) => lrows.push([L.name, i + 1, r.n, r.pj, r.g, r.p, r.pts, r.sf, r.sc]));
   });
   put('Ligas', lrows);
+
+  const wrows = [['Fecha', 'Sesión', 'Dorsal', 'Nombre', 'Dureza (RPE)', 'Minutos', 'Carga', 'Cansancio', 'Sueño', 'Dolor', 'Nota']];
+  sessions.forEach(s => Object.keys(s.well || {}).forEach(pid => {
+    const w = s.well[pid], p = db.players.find(x => x.id === pid) || {}, min = +s.dur || 90;
+    wrows.push([s.date, s.type + (s.title ? ' ' + s.title : ''), p.number || '', p.name || '', w.rpe, min, w.rpe * min, w.fat, w.sleep, w.pain, w.note || '']);
+  }));
+  put('Carga', wrows);
+
+  put('Lesiones', [['Dorsal', 'Nombre', 'Lesión', 'Desde', 'Vuelta prevista']]
+    .concat(players.filter(p => p.inj).map(p => [p.number, p.name, p.inj.what || '', p.inj.since || '', p.inj.back || ''])));
 
   put('Notas', [['Fecha', 'Título', 'Jugadora', 'Texto']]
     .concat((db.notes || []).slice().sort((a, b) => a.date.localeCompare(b.date)).map(n => [n.date, n.title || '', name(n.player), n.text])));
