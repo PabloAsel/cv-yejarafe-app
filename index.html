@@ -231,6 +231,18 @@ nav.tabs button{font-size:.66rem}
 .seg label{flex:1;padding:9px 6px;display:flex;gap:6px;align-items:center;justify-content:center;margin:0;font-weight:600;cursor:pointer}
 
 .ptbtns{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:12px}.ptbtns button{border:0;border-radius:12px;padding:10px 4px;font:inherit;font-weight:800;font-size:.85rem;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;min-height:56px}.ptbtns button small{font-weight:600;font-size:.68rem;opacity:.8}.ptbtns .us{background:color-mix(in srgb,#16a34a 18%,var(--card));color:var(--text)}.ptbtns .them{background:color-mix(in srgb,var(--brand) 16%,var(--card));color:var(--text)}
+.mapwrap{display:flex;justify-content:center}.mapsvg{width:100%;max-width:440px;max-height:calc(100dvh - 300px);border-radius:12px;cursor:crosshair;-webkit-user-select:none;user-select:none}
+.mapchips{flex-wrap:nowrap;overflow-x:auto;padding-bottom:4px}.mapchips .chip{flex:none}.chip.on{background:var(--brand);color:#fff;border-color:var(--brand)}
+.mapres{display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:6px;margin-top:8px}.mapres button{border:0;border-radius:12px;min-height:52px;font:inherit;font-weight:800;cursor:pointer;background:var(--bg);color:var(--text)}
+.mapres .pt{background:#16a34a;color:#fff}.mapres .in{background:#f59e0b;color:#111}.mapres .err{background:#dc2626;color:#fff}
+.maplegend{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;font-size:.78rem;color:var(--muted);margin-top:8px}.maplegend i{display:inline-block;width:12px;height:12px;border-radius:50%;margin-right:4px;vertical-align:-1px}
+.plan .ord{display:flex;flex-direction:column;gap:2px}.plan .ord button{border:1px solid var(--line);background:var(--bg);color:var(--text);border-radius:6px;width:30px;height:22px;font-size:.6rem;cursor:pointer}.plan .ord button:disabled{opacity:.3}
+#planrun{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:70;display:flex;align-items:center;justify-content:center;padding:16px}
+.runbox{position:relative;background:var(--card);color:var(--text);border-radius:20px;padding:22px 18px;width:100%;max-width:520px;max-height:92dvh;overflow:auto;text-align:center}
+.runbox h2{margin:4px 0 10px}.runmini{max-width:150px;margin:14px auto 0}.rundesc{text-align:left;font-size:.92rem}.runmini svg{width:100%}
+.runtime{font-family:var(--disp);font-style:italic;font-weight:800;font-size:4.2rem;margin:8px 0 12px;color:var(--brand)}.runtime.done{animation:blink 1s infinite}
+@keyframes blink{50%{opacity:.25}}.runx{position:absolute;top:10px;right:10px;border:0;background:var(--bg);color:var(--text);border-radius:50%;width:36px;height:36px;cursor:pointer}
+.rivalcard textarea{width:100%}
 /* pizarra v3 */
 .bwrap{background:var(--card);border-radius:var(--r);box-shadow:var(--shadow);padding:10px;margin-bottom:12px}
 .btop{display:flex;gap:6px;align-items:center;margin-bottom:8px}.btop input{min-width:0}
@@ -402,7 +414,7 @@ function render(){
   let h=V[tab]();
   if(MORE.includes(tab)&&!(tab==="leagues"&&selLeague))h=`<div class="row" style="margin-bottom:10px"><button class="btn sec small" onclick="go('more')">‹ Más</button></div>`+h;
   $("#app").innerHTML=h;
-  document.body.classList.toggle("bfull",boardFull&&tab==="rot"&&rotTab==="board");if(tab==="rot"&&rotTab==="board")bindBoard();if(tab==="rot"&&rotTab==="sys")bindSystems();
+  document.body.classList.toggle("bfull",boardFull&&tab==="rot"&&rotTab==="board");if(tab==="rot"&&rotTab==="board")bindBoard();bindMap();if(tab==="rot"&&rotTab==="sys")bindSystems();
   syncDot();
 }
 document.getElementById("tabs").addEventListener("click",e=>{const b=e.target.closest("button");if(b)go(b.dataset.t)});
@@ -573,7 +585,7 @@ function vSession(s){
   ${ps.length?`<ul class="list">${ps.map(p=>`<li>${avatar(p)}<div class="grow">${esc(p.name)}</div>
     <div class="att">${Object.keys(ATT).map(k=>`<button title="${ATT[k]}" class="${k} ${s.att[p.id]===k?"on":""}" onclick="mark('${s.id}','${p.id}','${k}')">${k}</button>`).join("")}</div></li>`).join("")}</ul>
     <p class="muted">P = presente · A = ausente · T = tarde · J = justificado</p>`:`<div class="empty">Primero añade jugadoras en Plantilla.</div>`}</details>
-  ${s.type==="partido"?liveStats(s):planCard(s)}
+  ${s.type==="partido"?rivalCard(s)+liveStats(s):planCard(s)}
   <div class="card"><h3>Vídeos de esta sesión</h3>${videoList(db.videos.filter(v=>v.session===s.id))||'<div class="muted">Ninguno. Añádelos en Más › Vídeos.</div>'}</div>
   <button class="btn danger" onclick="delSession('${s.id}')">Eliminar sesión</button>`;
 }
@@ -591,10 +603,44 @@ function allPresent(sid){const s=sess(sid);db.players.forEach(p=>s.att[p.id]="P"
 function delSession(id){if(!confirm("¿Eliminar esta sesión y todo lo apuntado en ella?"))return;db.sessions=db.sessions.filter(s=>s.id!==id);db.videos.forEach(v=>{if(v.session===id)v.session=""});selSession=null;save();render()}
 
 /* plan de entreno */
+/* plan de entreno v2 */
 function planCard(s){s.plan=s.plan||[];const items=s.plan.map(id=>db.exercises.find(e=>e.id===id)).filter(Boolean);const mins=items.reduce((n,e)=>n+(+e.mins||0),0);
-  return `<div class="card"><h3>📋 Plan del entreno ${mins?`<span class="pill">${mins} min</span>`:""}</h3>
-  ${items.length?`<ul class="list">${items.map((e,i)=>`<li><b>${i+1}.</b><div class="grow"><div>${esc(e.name)}</div><div class="muted">${esc(e.cat)}${e.mins?" · "+e.mins+" min":""}</div></div><button class="btn sec small" onclick="openEx('${e.id}')">Ver</button><button class="btn danger small" onclick="planRm('${s.id}',${i})">✕</button></li>`).join("")}</ul>`:'<div class="muted">Sin ejercicios todavía.</div>'}
-  ${db.exercises.length?`<div class="row" style="margin-top:10px"><select id="planAdd" class="grow"><option value="">＋ Añadir ejercicio…</option>${EXCAT.map(c=>{const xs=db.exercises.filter(e=>e.cat===c);return xs.length?`<optgroup label="${c}">${xs.map(e=>`<option value="${e.id}">${esc(e.name)}${e.mins?" ("+e.mins+"′)":""}</option>`).join("")}</optgroup>`:""}).join("")}</select><button class="btn small" onclick="planAdd('${s.id}')">Añadir</button></div>`:`<p class="muted">Crea ejercicios en Más › Ejercicios para montar el plan.</p>`}</div>`}
+  let t=s.time?(+s.time.slice(0,2))*60+(+s.time.slice(3,5)):null;const hhmm=m=>String(Math.floor(m/60)%24).padStart(2,"0")+":"+String(m%60).padStart(2,"0");
+  return `<div class="card"><h3>📋 Plan del entreno ${mins?`<span class="pill">${mins} min</span>`:""}${s.time&&mins?` <span class="pill">${s.time}–${hhmm(t+mins)}</span>`:""}</h3>
+  ${items.length?`<ul class="list plan">${items.map((e,i)=>{const at=t!=null?hhmm(t):"";if(t!=null)t+=(+e.mins||0);return `<li>${at?`<span class="pill">${at}</span>`:`<b>${i+1}.</b>`}<div class="grow click" onclick="openEx('${e.id}')"><div>${esc(e.name)}</div><div class="muted">${esc(e.cat)}${e.mins?" · "+e.mins+" min":""}</div></div>
+    <div class="ord"><button onclick="planMove('${s.id}',${i},-1)" ${i?"":"disabled"} aria-label="Subir">▲</button><button onclick="planMove('${s.id}',${i},1)" ${i<items.length-1?"":"disabled"} aria-label="Bajar">▼</button></div><button class="btn danger small" onclick="planRm('${s.id}',${i})">✕</button></li>`}).join("")}</ul>
+    <div class="row" style="margin-top:10px"><button class="btn" onclick="runPlan('${s.id}')">▶ Empezar entreno</button><a class="btn sec" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(planText(s,items))}">💬 Enviar plan</a></div>`:'<div class="muted">Sin ejercicios todavía.</div>'}
+  ${db.exercises.length?`<div class="row" style="margin-top:10px"><select id="planAdd" class="grow"><option value="">＋ Añadir ejercicio…</option>${EXCAT.map(c=>{const xs=db.exercises.filter(e=>e.cat===c);return xs.length?`<optgroup label="${c}">${xs.map(e=>`<option value="${e.id}">${esc(e.name)}${e.mins?" ("+e.mins+"′)":""}</option>`).join("")}</optgroup>`:""}).join("")}</select><button class="btn small" onclick="planAdd('${s.id}')">Añadir</button></div>`:`<p class="muted">Crea ejercicios en Ejercicios para montar el plan.</p>`}</div>`}
+function planMove(sid,i,d){const p=sess(sid).plan;const j=i+d;if(j<0||j>=p.length)return;[p[i],p[j]]=[p[j],p[i]];keepScroll(save)}
+function planText(s,items){return `🏐 *Entreno ${fmtDate(s.date)}${s.time?" · "+s.time:""}*\n`+items.map((e,i)=>`${i+1}. ${e.name}${e.mins?" ("+e.mins+"′)":""}`).join("\n")+`\n\nTotal: ${items.reduce((n,e)=>n+(+e.mins||0),0)} min`}
+let planRun=null;
+function runPlan(sid){const s=sess(sid);const items=s.plan.map(id=>db.exercises.find(e=>e.id===id)).filter(Boolean);if(!items.length)return;planRun={sid,i:0,end:Date.now()+(+items[0].mins||5)*60000,paused:0};showRun()}
+function showRun(){if(!planRun)return;const s=sess(planRun.sid);const items=s.plan.map(id=>db.exercises.find(e=>e.id===id)).filter(Boolean);const e=items[planRun.i];if(!e){closeRun();return}
+  let el=$("#planrun");if(!el){el=document.createElement("div");el.id="planrun";document.body.appendChild(el)}
+  const left=()=>planRun.paused?planRun.paused:Math.max(0,planRun.end-Date.now());const fmt=ms=>{const t=Math.ceil(ms/1000);return Math.floor(t/60)+":"+String(t%60).padStart(2,"0")};
+  el.innerHTML=`<div class="runbox"><div class="muted">Ejercicio ${planRun.i+1} de ${items.length}</div><h2>${esc(e.name)}</h2>
+   <div class="runtime" id="runtime">${fmt(left())}</div>
+   <div class="row" style="justify-content:center"><button class="btn sec" onclick="runStep(-1)" ${planRun.i?"":"disabled"}>‹</button><button class="btn sec" onclick="runPause()">${planRun.paused?"▶ Seguir":"⏸ Pausa"}</button><button class="btn" onclick="runStep(1)">${planRun.i<items.length-1?"Siguiente ›":"Terminar"}</button></div>
+   ${items[planRun.i+1]?`<div class="muted" style="margin-top:10px">Después: ${esc(items[planRun.i+1].name)}</div>`:""}
+   ${e.play?`<div class="runmini">${miniBoardSvg(e.play)}</div>`:""}${e.desc?`<p class="rundesc">${esc(e.desc)}</p>`:""}<button class="runx" onclick="closeRun()">✕</button></div>`;
+  clearInterval(el._i);el._i=setInterval(()=>{const r=left();const t=$("#runtime");if(t)t.textContent=fmt(r);if(!r&&!planRun.paused&&!planRun.beeped){planRun.beeped=1;navigator.vibrate&&navigator.vibrate([300,150,300]);t&&t.classList.add("done")}},250)}
+function runStep(d){const s=sess(planRun.sid);const items=s.plan.map(id=>db.exercises.find(e=>e.id===id)).filter(Boolean);planRun.i+=d;if(planRun.i>=items.length){closeRun();toast("¡Entreno terminado!");return}planRun.i=Math.max(0,planRun.i);planRun.end=Date.now()+(+items[planRun.i].mins||5)*60000;planRun.paused=0;planRun.beeped=0;showRun()}
+function runPause(){if(planRun.paused){planRun.end=Date.now()+planRun.paused;planRun.paused=0}else planRun.paused=Math.max(1,planRun.end-Date.now());showRun()}
+function closeRun(){const el=$("#planrun");if(el){clearInterval(el._i);el.remove()}planRun=null}
+/* compartir pizarra como imagen */
+async function boardPng(svgEl){const c=svgEl.cloneNode(true);const O=[svgEl,...svgEl.querySelectorAll("*")],C=[c,...c.querySelectorAll("*")];
+  O.forEach((o,i)=>{["fill","stroke"].forEach(a=>{const v=C[i].getAttribute(a);if(v&&v.includes("var("))C[i].setAttribute(a,getComputedStyle(o)[a])});const st=C[i].getAttribute("style");if(st&&st.includes("var(")){C[i].setAttribute("fill",getComputedStyle(o).fill);C[i].removeAttribute("style")}});c.setAttribute("xmlns","http://www.w3.org/2000/svg");c.removeAttribute("style");const vb=c.viewBox.baseVal;const W=720,H=Math.round(W*vb.height/vb.width);c.setAttribute("width",W);c.setAttribute("height",H);
+  const url="data:image/svg+xml;charset=utf-8,"+encodeURIComponent(new XMLSerializer().serializeToString(c));const img=new Image();await new Promise((ok,ko)=>{img.onload=ok;img.onerror=ko;img.src=url});
+  const cv=document.createElement("canvas");cv.width=W;cv.height=H+60;const g=cv.getContext("2d");g.fillStyle="#0a0a0a";g.fillRect(0,0,W,H+60);g.drawImage(img,0,0,W,H);
+  g.fillStyle="#fff";g.font="bold italic 26px 'Barlow Condensed',sans-serif";g.fillText((db.team||"").toUpperCase(),18,H+40);g.font="20px sans-serif";g.fillStyle="#bbb";const nm=curBoard().name||"";g.fillText(nm.slice(0,40),W-18-g.measureText(nm.slice(0,40)).width,H+38);
+  return new Promise(r=>cv.toBlob(r,"image/png"))}
+async function shareBoard(){const B=curBoard();const svg=$("#bsvg");if(!svg)return;bSel=null;render();
+  try{const blob=await boardPng($("#bsvg"));const name=(B.name||"jugada").replace(/[^\wáéíóúñ -]/gi,"").trim()+(B.frames.length>1?` (paso ${boardFrame+1})`:"")+".png";const file=new File([blob],name,{type:"image/png"});
+    const text=B.name+(B.frames[boardFrame].note?"\n"+B.frames[boardFrame].note:"");
+    if(navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file],title:B.name,text});return}
+    const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();a.remove();toast("Imagen descargada: mándala por WhatsApp")}
+  catch(e){if(e&&e.name!=="AbortError")toast("No se pudo crear la imagen")}}
+
 function planAdd(sid){const v=$("#planAdd").value;if(!v)return;sess(sid).plan.push(v);keepScroll(save)}
 function planRm(sid,i){sess(sid).plan.splice(i,1);keepScroll(save)}
 
@@ -618,7 +664,7 @@ function liveStats(s){
     return `<div class="att stat">${[0,1,2,3].map(v=>`<button onclick="addEv('${s.id}','${p.id}','${t}',${v})"><small>nota ${v}</small><b>${vs.filter(x=>x===v).length}</b></button>`).join("")}</div><span class="pill">media ${avg(vs)??"–"}</span>`};
   const help={pts:"Toca cómo gana el punto cada jugadora, o “Error” si lo regala. Los dos botones de arriba apuntan los puntos del rival.",
     rec:"Nota de cada recepción: 0 = error o punto rival, 1 = mala (sin ataque), 2 = buena (pocas opciones), 3 = perfecta (todas las opciones).",
-    srv:"Nota de cada saque: 0 = error, 1 = fácil para el rival, 2 = les complica, 3 = ace. Va aparte del marcador: si fue ace o error, apúntalo también en Puntos."}[statMode];
+    map:"",srv:"Nota de cada saque: 0 = error, 1 = fácil para el rival, 2 = les complica, 3 = ace. Va aparte del marcador: si fue ace o error, apúntalo también en Puntos."}[statMode];
   return `<div class="card"><h2>📊 Partido en directo</h2>
   <div class="seg" style="margin-bottom:8px">${[1,2,3,4,5].map(n=>`<button class="${n===set?"on":""}" onclick="setSet('${s.id}',${n})">Set ${n}</button>`).join("")}</div>
   ${setBanner(s)}
@@ -626,9 +672,9 @@ function liveStats(s){
   <div class="muted" style="text-align:center;margin-bottom:10px">Sets ${sc.won}–${sc.lost}${sc.sets.length?" · "+sc.sets.map(x=>x.us+"-"+x.them).join(" · "):""}</div>
   ${actaCard(s,set)}
   <div class="ptbtns"><button class="us" onclick="addEv('${s.id}','team','P')">＋ Punto nuestro<small>sin apuntar quién</small></button><button class="us" onclick="addEv('${s.id}','opp','E')">＋ Error del rival<small>punto nuestro</small></button><button class="them" onclick="addEv('${s.id}','opp','R')">＋ Punto del rival<small>punto suyo</small></button></div>
-  <div class="seg" style="margin-bottom:8px">${[["pts","Puntos"],["rec","Recep. 0-3"],["srv","Saque 0-3"]].map(([k,l])=>`<button class="${statMode===k?"on":""}" onclick="statMode='${k}';keepScroll(()=>{})">${l}</button>`).join("")}</div>
-  <p class="muted" style="margin-top:0">${help}</p>
-  ${ps.length?`<ul class="list">${ps.map(p=>`<li style="flex-wrap:wrap"><div class="grow" style="min-width:100px"><b>${esc(p.number)}</b> ${esc(p.name)}</div>${row(p)}</li>`).join("")}</ul>`:`<div class="muted">Marca primero quién está presente en “Pasar lista”.</div>`}
+  <div class="seg" style="margin-bottom:8px">${[["pts","Puntos"],["map","🎯 Mapa"],["rec","Recep. 0-3"],["srv","Saque 0-3"]].map(([k,l])=>`<button class="${statMode===k?"on":""}" onclick="statMode='${k}';keepScroll(()=>{})">${l}</button>`).join("")}</div>
+  ${help?`<p class="muted" style="margin-top:0">${help}</p>`:""}
+  ${statMode==="map"?(ps.length?mapLive(s,set,ps):`<div class="muted">Marca primero quién está presente en “Pasar lista”.</div>`):ps.length?`<ul class="list">${ps.map(p=>`<li style="flex-wrap:wrap"><div class="grow" style="min-width:100px"><b>${esc(p.number)}</b> ${esc(p.name)}</div>${row(p)}</li>`).join("")}</ul>`:`<div class="muted">Marca primero quién está presente en “Pasar lista”.</div>`}
   <div class="row" style="margin-top:10px"><button class="btn sec" onclick="undoEv('${s.id}')">↶ Deshacer último</button>${evs(s).length?`<button class="btn sec" onclick="openActa('${s.id}')">📄 Ver acta</button>`:""}</div></div>`;
 }
 function setSet(sid,n){sess(sid).set=n;keepScroll(save)}
@@ -717,6 +763,71 @@ function openActa(sid){const s=sess(sid);const D=actaData(s);const d=$("#dlg");
 function actaText(s,D){return `🏐 *${db.team} ${D.sc.won}–${D.sc.lost} ${s.title||"Rival"}*\n📅 ${fmtDate(s.date)}\nSets: ${D.sets.map(x=>x.us+"-"+x.them).join(" · ")}`+(D.top.length?`\n\n⭐ Puntos: ${D.top.slice(0,5).map(r=>r.p.name.split(" ")[0]+" "+r.pts).join(", ")}`:"")+`\n\n${db.slogan||"Más que un equipo, una familia"} ❤️🖤`}
 
 
+/* ---------- MAPA DE ATAQUE Y SAQUE ---------- */
+// eventos con sitio: A/S (punto), E con k (error), z (sigue la jugada). x 0-9 desde nuestra izquierda, y 0 = fondo rival, 9 = red
+let mapP=null,mapK="A",mapPend=null,mapF={p:"",k:"",set:0};
+const MAPRES={pt:"#16a34a",in:"#f59e0b",err:"#dc2626"};
+function evRes(e){return e.t==="E"?"err":e.t==="z"?"in":"pt"}
+function zoneOf(x,y){if(x<0||x>9||y<0||y>9)return 0;const c=x<3?0:x<6?1:2;return y>=6?[2,3,4][c]:[1,6,5][c]}
+function mapSvg(list,opts){opts=opts||{};const Z={};list.forEach(e=>{const z=zoneOf(e.x,e.y);if(z){Z[z]=Z[z]||{n:0,pt:0};Z[z].n++;if(evRes(e)==="pt")Z[z].pt++}});const tot=list.filter(e=>zoneOf(e.x,e.y)).length;
+  const zc={2:[1.5,7.5],3:[4.5,7.5],4:[7.5,7.5],1:[1.5,3],6:[4.5,3],5:[7.5,3]};
+  return `<svg ${opts.id?`id="${opts.id}"`:""} class="mapsvg" viewBox="-2 -2 13 12.2" style="touch-action:manipulation">
+   <rect x="-2" y="-2" width="13" height="12.2" fill="#2d6a4f" rx=".4"/><rect x="0" y="0" width="9" height="9" fill="#e8894b" stroke="#fff" stroke-width=".08"/>
+   <line x1="0" y1="6" x2="9" y2="6" stroke="#fff" stroke-width=".06"/><line x1="3" y1="0" x2="3" y2="9" stroke="#fff" stroke-opacity=".25" stroke-width=".04" stroke-dasharray=".2 .2"/><line x1="6" y1="0" x2="6" y2="9" stroke="#fff" stroke-opacity=".25" stroke-width=".04" stroke-dasharray=".2 .2"/>
+   <line x1="0" y1="3" x2="9" y2="3" stroke="#fff" stroke-opacity=".0"/>
+   <rect x="-.6" y="8.95" width="10.2" height=".22" fill="#111"/><text x="4.5" y="10.05" text-anchor="middle" font-size=".55" fill="#fff" opacity=".85">RED · nosotros atacamos desde aquí ↑</text>
+   ${opts.zones&&tot?Object.entries(zc).map(([z,[x,y]])=>{const v=Z[z];const pc=v?Math.round(v.n*100/tot):0;return `<text x="${x}" y="${y}" text-anchor="middle" font-size=".9" font-weight="800" fill="#fff" opacity="${v?.95:.35}">${pc}%</text><text x="${x}" y="${y+.7}" text-anchor="middle" font-size=".42" fill="#fff" opacity=".85">${v?"zona "+z+" · "+v.pt+"/"+v.n+" pts":"zona "+z}</text>`}).join(""):""}
+   ${list.map(e=>`<circle cx="${e.x}" cy="${e.y}" r=".26" fill="${MAPRES[evRes(e)]}" stroke="#fff" stroke-width=".06" opacity=".9"/>${e.k==="S"?`<circle cx="${e.x}" cy="${e.y}" r=".08" fill="#fff"/>`:""}`).join("")}
+   ${opts.pend?`<circle cx="${opts.pend.x}" cy="${opts.pend.y}" r=".38" fill="none" stroke="#ffd60a" stroke-width=".12"><animate attributeName="r" values=".3;.5;.3" dur="1s" repeatCount="indefinite"/></circle>`:""}</svg>`}
+function mapLegend(){return `<div class="maplegend"><span><i style="background:${MAPRES.pt}"></i>Punto</span><span><i style="background:${MAPRES.in}"></i>Sigue</span><span><i style="background:${MAPRES.err}"></i>Error</span><span><i style="background:#888;box-shadow:inset 0 0 0 3px #888,inset 0 0 0 5px #fff"></i>Saque</span></div>`}
+function mapLive(s,set,ps){const st=actaState(s,set);if(!mapP||!ps.some(p=>p.id===mapP))mapP=(mapK==="S"&&st&&st.srv==="us")?st.lu[0]:(ps[0]||{}).id;
+  const list=evs(s).filter(e=>(e.s||1)===set&&e.x!=null);
+  return `<div class="seg" style="margin-bottom:8px"><button class="${mapK==="A"?"on":""}" onclick="mapK='A';mapPend=null;keepScroll(()=>{})">💥 Ataque</button><button class="${mapK==="S"?"on":""}" onclick="mapK='S';mapP=null;mapPend=null;keepScroll(()=>{})">🏐 Saque</button></div>
+   <div class="chips mapchips">${ps.map(p=>`<button class="chip ${p.id===mapP?"on":""}" onclick="mapP='${p.id}';keepScroll(()=>{})">${esc(p.number)} ${esc(p.name.split(" ")[0])}</button>`).join("")}</div>
+   <p class="muted" style="margin:6px 0">Toca en la pista rival dónde cayó ${mapK==="A"?"el ataque":"el saque"}${mapP?" de <b>"+esc(pname(mapP))+"</b>":""}. Fuera de la pista cuenta como error.</p>
+   <div class="mapwrap">${mapSvg(list,{id:"mapsvg",pend:mapPend})}</div>
+   ${mapPend?`<div class="mapres"><button class="pt" onclick="mapSave('${s.id}','pt')">✅ Punto</button><button class="in" onclick="mapSave('${s.id}','in')">↔ Sigue</button><button class="err" onclick="mapSave('${s.id}','err')">❌ Error</button><button onclick="mapPend=null;keepScroll(()=>{})">✕</button></div>`:mapLegend()}`}
+function bindMap(){const svg=$("#mapsvg");if(!svg)return;svg.onclick=e=>{if(!mapP){toast("Elige primero la jugadora");return}const p=svg.createSVGPoint();p.x=e.clientX;p.y=e.clientY;const r=p.matrixTransform(svg.getScreenCTM().inverse());
+  const x=Math.round(r.x*10)/10,y=Math.round(r.y*10)/10;if(y>9.1)return;mapPend={x,y};
+  if(x<0||x>9||y<0){const sid=selSession;mapSave(sid,"err");return}keepScroll(()=>{})}}
+function mapSave(sid,res){const s=sess(sid);if(!mapPend||!mapP)return;const e={p:mapP,t:res==="pt"?mapK:res==="err"?"E":"z",k:mapK,x:mapPend.x,y:mapPend.y,s:s.set||1};evs(s).push(e);mapPend=null;keepScroll(save);if(navigator.vibrate)navigator.vibrate(15);
+  toast((mapK==="A"?"Ataque":"Saque")+" de "+pname(e.p,true)+": "+{pt:"punto",in:"sigue",err:"error"}[res])}
+function mapStatsCard(){const ms=db.sessions.filter(s=>s.type==="partido");let list=[];ms.forEach(s=>evs(s).forEach(e=>{if(e.x!=null)list.push(e)}));
+  if(!list.length)return `<div class="card"><h2>🎯 Mapa de ataque y saque</h2><p class="muted" style="margin:0">Durante el partido, en “Partido en directo” › <b>Mapa</b>, toca dónde cae cada ataque o saque. Aquí verás hacia qué zonas atacáis y sacáis y desde dónde hacéis más puntos.</p></div>`;
+  const pids=[...new Set(list.map(e=>e.p))];
+  if(mapF.p)list=list.filter(e=>e.p===mapF.p);if(mapF.k)list=list.filter(e=>e.k===mapF.k);
+  const n=list.length,pt=list.filter(e=>evRes(e)==="pt").length,er=list.filter(e=>evRes(e)==="err").length;
+  return `<div class="card"><h2>🎯 Mapa de ataque y saque</h2>
+   <div class="row" style="gap:6px;margin-bottom:8px"><select onchange="mapF.p=this.value;keepScroll(()=>{})"><option value="">Todo el equipo</option>${pids.map(id=>`<option value="${id}" ${mapF.p===id?"selected":""}>${esc(pname(id))}</option>`).join("")}</select>
+   <select onchange="mapF.k=this.value;keepScroll(()=>{})"><option value="">Ataque y saque</option><option value="A" ${mapF.k==="A"?"selected":""}>Solo ataque</option><option value="S" ${mapF.k==="S"?"selected":""}>Solo saque</option></select></div>
+   <div class="row" style="gap:6px;margin-bottom:8px"><span class="pill">${n} acciones</span><span class="pill ok">Punto ${n?Math.round(pt*100/n):0}%</span><span class="pill bad">Error ${n?Math.round(er*100/n):0}%</span><span class="pill">Eficacia ${n?Math.round((pt-er)*100/n):0}%</span></div>
+   <div class="mapwrap">${mapSvg(list,{zones:true})}</div>${mapLegend()}
+   <p class="muted">El porcentaje grande es cuántas acciones van a cada zona del campo rival; debajo, cuántas acabaron en punto. Si siempre atacáis a la misma zona, el rival lo leerá.</p></div>`}
+
+/* ---------- FICHA DEL RIVAL ---------- */
+function findRival(name){const n=norm(name||"");if(n.length<3)return null;let best=null,score=0;
+  (db.leagues||[]).forEach(L=>L.teams.forEach(t=>{if(t.mine)return;const tn=norm(t.name);let sc=0;
+    if(tn===n)sc=100;else if(tn.includes(n)||n.includes(tn))sc=60;else{const a=n.split(" ").filter(w=>w.length>2&&!["club","voleibol","cv","cd","ud"].includes(w));const hit=a.filter(w=>tn.split(" ").includes(w)).length;if(hit)sc=hit*20}
+    if(sc>score){score=sc;best={L,t}}}));return score>=20?best:null}
+function rivalKey(name){return norm(name||"")}
+function rivalCard(s){if(!s.title)return "";const R=findRival(s.title);db.rivals=db.rivals||{};const note=(db.rivals[rivalKey(s.title)]||{}).note||"";
+  const past=db.sessions.filter(x=>x.id!==s.id&&x.type==="partido"&&rivalKey(x.title)===rivalKey(s.title)&&evs(x).length).sort((a,b)=>b.date.localeCompare(a.date));
+  let league="";if(R){const {L,t}=R;const st=standings(L);const pos=st.findIndex(r=>r.t.id===t.id);const r=st[pos];
+    const ms=L.matches.filter(m=>(m.home===t.id||m.away===t.id)&&setsOf(m)).sort((a,b)=>(b.date||"").localeCompare(a.date||"")).slice(0,4);
+    const me=L.teams.find(x=>x.mine);const h2h=me?L.matches.filter(m=>setsOf(m)&&((m.home===t.id&&m.away===me.id)||(m.away===t.id&&m.home===me.id))):[];
+    league=`<div class="row" style="align-items:center;gap:10px;margin:6px 0 10px">${crest(t,44)}<div class="grow"><b>${esc(t.name)}</b><div class="muted">${esc(L.name)}</div></div></div>
+     ${r?`<div class="kpis"><div class="kpi"><b>${pos+1}º</b><small>posición</small></div><div class="kpi"><b>${r.pts}</b><small>puntos</small></div><div class="kpi"><b>${r.pg}-${r.pp}</b><small>G-P</small></div><div class="kpi"><b>${r.sf}-${r.sc}</b><small>sets</small></div></div>`:""}
+     ${ms.length?`<h4 style="margin:12px 0 4px">Últimos resultados</h4><ul class="list">${ms.map(m=>matchLi(L,m,t.id)).join("")}</ul>`:""}
+     ${h2h.length?`<h4 style="margin:12px 0 4px">Contra nosotros esta temporada</h4><ul class="list">${h2h.map(m=>matchLi(L,m,me.id)).join("")}</ul>`:""}
+     <button class="btn sec small" style="margin-top:8px" onclick="tab='leagues';selLeague='${L.id}';selTeam='${t.id}';render();scrollTo(0,0)">Ver su plantilla y todos sus partidos ›</button>`}
+  else league=`<p class="muted" style="margin-top:0">No encuentro “${esc(s.title)}” en las ligas. Si el nombre del partido coincide con el de la liga, aquí verás su posición y resultados.</p>`;
+  return `<details class="card rivalcard" ${s.date>=today()?"open":""}><summary><b>🔎 Ficha del rival</b>${R?` <span class="pill">${esc(R.t.name)}</span>`:""}</summary>
+   ${league}
+   ${past.length?`<h4 style="margin:12px 0 4px">Nuestros partidos contra ellos</h4><ul class="list">${past.map(x=>{const sc=setScores(x);return `<li class="click" onclick="openSession('${x.id}')"><div class="grow">${fmtDate(x.date)} <span class="pill ${sc.won>sc.lost?"ok":"bad"}">${sc.won}-${sc.lost}</span><div class="muted">${sc.sets.map(y=>y.us+"-"+y.them).join(" · ")}</div></div><span>›</span></li>`}).join("")}</ul>`:""}
+   <h4 style="margin:12px 0 4px">Notas de scouting</h4>
+   <textarea rows="4" placeholder="Jugadoras clave, por dónde atacan, cómo sacan, su colocadora, qué les hace daño…" onchange="db.rivals=db.rivals||{};db.rivals['${rivalKey(s.title)}']={note:this.value,at:Date.now()};save()">${esc(note)}</textarea>
+   <p class="muted" style="margin:4px 0 0">Las notas se guardan por rival y vuelven a salir en el siguiente partido contra ellos.</p></details>`}
+
 /* ---------- ESTADÍSTICAS DE TEMPORADA ---------- */
 function seasonRows(){
   const ms=db.sessions.filter(s=>s.type==="partido");
@@ -746,6 +857,7 @@ function vStats(){
   </tbody></table></div><p class="muted">PJ = partidos jugados · Rec y Saq★ = nota media 0-3. En gris, quien ha jugado poco: no saques conclusiones todavía. Mira la proporción: no es lo mismo 10 puntos de ataque que 10 con 5 bloqueos. Toca una fila para ver su ficha.</p></div>
   <div class="card"><h2>Partido a partido</h2><ul class="list">${[...ms].filter(s=>evs(s).length||s.date<=today()).sort((a,b)=>b.date.localeCompare(a.date)).map(s=>{const m=matchSum(s);const sc=setScores(s);return `<li class="click" onclick="tab='cal';openSession('${s.id}')"><div class="grow"><b>${fmtDate(s.date)}</b> ${esc(s.title)} ${sc.sets.length?`<span class="pill ${sc.won>sc.lost?"ok":sc.won<sc.lost?"bad":""}">${sc.won}-${sc.lost}</span>`:""}<div class="muted">Ganados ${m.won} + ${m.opp} por error rival · perdidos ${m.given} por errores + ${m.rival} del rival</div></div><span>›</span></li>`}).join("")}</ul>
   <div class="row" style="margin-top:8px"><button class="btn sec small" onclick="exportStatsCSV()">📊 Exportar CSV</button></div></div>
+  ${mapStatsCard()}
   ${testsTeamCard()}
   <div class="card"><h3>Consejos</h3><p class="muted" style="margin:0">Empieza con una pregunta concreta (“¿por qué perdemos los terceros sets?”). Comparte una conclusión por semana con el equipo, y los números individuales háblalos en privado, como un espejo, no como una nota.</p></div>`;
 }
@@ -1325,7 +1437,7 @@ function vBoard(){const B=curBoard();const F=B.frames[boardFrame];const st=bSel&
   return `<div class="bwrap ${boardFull?"full":""}">
   <div class="btop"><input id="bname" class="grow" value="${esc(B.name)}" onchange="curBoard().name=this.value;stashBoard()" aria-label="Nombre">
    ${B.exId?`<button class="btn small" onclick="saveBoardToEx()">💾 Guardar en ejercicio</button>`:`<button class="btn small" onclick="savePlay()">💾 Guardar</button>`}
-   <button class="btn sec small" onclick="newBoardAsk()" title="Nueva">📄</button><button class="btn sec small" onclick="boardFull=!boardFull;document.body.classList.toggle('bfull',boardFull);render()" title="Pantalla completa">${boardFull?"↙":"⛶"}</button></div>
+   <button class="btn sec small" onclick="shareBoard()" title="Compartir imagen">📤</button><button class="btn sec small" onclick="newBoardAsk()" title="Nueva">📄</button><button class="btn sec small" onclick="boardFull=!boardFull;document.body.classList.toggle('bfull',boardFull);render()" title="Pantalla completa">${boardFull?"↙":"⛶"}</button></div>
   <div class="bmain"><div id="bwrap" class="bcourt">${boardSvg()}</div>
   <div class="bpanel">
    ${selBar}
@@ -1600,7 +1712,7 @@ function mergeArr(remote,local,isSession){const m=new Map((remote||[]).map(x=>[x
     if(isSession&&r){const rt=r.rsvpT||{},lt=x.rsvpT||{};const rs={...(x.rsvp||{})};Object.keys({...(r.rsvp||{}),...rt}).forEach(k=>{if((rt[k]||0)>(lt[k]||0)){if(r.rsvp&&r.rsvp[k])rs[k]=r.rsvp[k];else delete rs[k]}});
       const T={...lt};Object.keys(rt).forEach(k=>{if((rt[k]||0)>(T[k]||0))T[k]=rt[k]});m.set(x.id,{...x,rsvp:rs,rsvpT:T})}
     else m.set(x.id,x)});return [...m.values()]}
-function merge(remote,local){const out=Object.assign(blank(),remote);["players","videos","exercises","notes","fees","money","lineups","tests","leagues","plays","systems"].forEach(k=>out[k]=mergeArr(remote[k],local[k]));out.sessions=mergeArr(remote.sessions,local.sessions,true);out.team=local.team||remote.team;out.lineup=local.lineup||remote.lineup;return out}
+function merge(remote,local){const out=Object.assign(blank(),remote);["players","videos","exercises","notes","fees","money","lineups","tests","leagues","plays","systems"].forEach(k=>out[k]=mergeArr(remote[k],local[k]));out.sessions=mergeArr(remote.sessions,local.sessions,true);out.team=local.team||remote.team;out.rivals={...(remote.rivals||{})};Object.entries(local.rivals||{}).forEach(([k,v])=>{if(!out.rivals[k]||(v.at||0)>=(out.rivals[k].at||0))out.rivals[k]=v});out.lineup=local.lineup||remote.lineup;return out}
 async function push(){if(!sync.url||busy)return;busy=true;syncDot();
   try{let res=await api({a:"save",base:sync.base,db});
     if(res.conflict){db=merge(res.db,db);db.updatedAt=Date.now();persist();res=await api({a:"save",base:res.db.updatedAt,db});if(!document.querySelector("dialog[open]"))keepScroll(()=>{})}
