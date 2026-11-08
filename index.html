@@ -356,6 +356,9 @@ nav.tabs button.on{color:var(--brand)}
 @media (min-width:1000px){nav.tabs{background:#0a0a0a;border-right:0}nav.tabs:before{content:"";top:14px;left:18px;width:200px;height:56px;background:url(crest.png) left center/contain no-repeat}
  nav.tabs:after{content:"CV YEJARAFE";position:absolute;top:30px;left:80px;font-family:var(--disp);font-style:italic;font-weight:800;font-size:1.35rem;color:#fff}
  header h1 img{display:none} nav.tabs button{color:#c9c2c1}nav.tabs button:hover{background:#1b1515}nav.tabs button.on{background:#b12c24;color:#fff}header{padding-left:252px}}
+.ptbar{position:relative;height:18px;border-radius:9px;background:color-mix(in srgb,var(--muted) 18%,transparent);overflow:hidden;min-width:70px}.ptbar i{position:absolute;inset:0 auto 0 0;background:var(--brand);border-radius:9px}.ptbar span{position:relative;font-size:.75rem;font-weight:700;padding:0 6px;line-height:18px;color:var(--text);text-shadow:0 0 3px var(--card),0 0 3px var(--card)}
+.goals li{gap:8px}.goal{display:flex;gap:8px;align-items:flex-start;cursor:pointer;margin:0}.goal input{width:auto;margin-top:3px}.goal.done span{text-decoration:line-through;opacity:.6}
+.weekcard{border-left:4px solid var(--brand)}
 </style>
 </head>
 <body>
@@ -539,6 +542,7 @@ function vPlayer(p){
   <div class="row" style="margin-top:10px"><button class="btn sec small" onclick="editPlayer('${p.id}')">Editar</button><button class="btn small" onclick="sendReport('${p.id}')">💬 Mandarle su informe</button><label class="btn sec small" style="margin:0;color:var(--text)">📷 ${p.photo?"Cambiar foto":"Poner foto"}<input type="file" accept="image/*" hidden onchange="setPhoto('${p.id}',this)"></label>${p.photo?`<button class="btn danger small" onclick="player('${p.id}').photo='';save();render()">Quitar foto</button>`:""}${wa?`<a class="btn sec small" href="${wa}" target="_blank" rel="noopener">💬 WhatsApp</a>`:""}</div></div>
   ${injCard(p)}
   ${loadCard(p)}
+  ${goalsCard(p)}
   ${physCard(p)}
   ${testsCard(p)}
   <div class="kpis" style="margin-bottom:12px"><div class="kpi"><b>${pct(p.id)}%</b><small>asistencia</small></div><div class="kpi"><b>${r.pts}</b><small>puntos (${r.pj} PJ)</small></div><div class="kpi"><b>${r.E}</b><small>errores</small></div>
@@ -562,7 +566,7 @@ function vCal(){
   const li=s=>{const c=Object.values(s.att).filter(v=>v==="P"||v==="T").length;const r=rsvpCount(s);const isUp=s.date>=today();
     return `<li class="click" onclick="openSession('${s.id}')"><div class="grow"><b>${sessLabel(s)}</b>${s.title||s.place?`<div class="muted">${esc([s.title,s.place].filter(Boolean).join(" · "))}</div>`:""}</div>
     ${isUp?`<span class="pill ok">✓ ${r.si}</span>`:`<span class="pill">${c}/${db.players.length}</span>`}<span>›</span></li>`};
-  return `<div class="card"><h2>Nuevo entreno o partido</h2>
+  return `${weekCard()}<div class="card"><h2>Nuevo entreno o partido</h2>
   <form onsubmit="addSession(event)">
    <div class="seg" id="segType"><button type="button" class="on" data-v="entreno" onclick="segPick(this)">Entreno</button><button type="button" data-v="partido" onclick="segPick(this)">Partido</button></div>
    <div class="row" style="margin-top:8px"><input name="date" type="date" value="${today()}" class="grow" style="width:auto"><input name="time" type="time" class="grow" style="width:auto"></div>
@@ -870,8 +874,47 @@ function playerReport(p){const {rows}=seasonRows();const r=rows.find(x=>x.p.id==
   if(r.pj)L.push(`🏆 Partidos jugados: ${r.pj}`,`⭐ Puntos: ${r.pts} (ataque ${r.A}, bloqueo ${r.B}, saque ${r.S}) · ${(r.pts/r.pj).toFixed(1)} por partido`,`⚠️ Errores: ${r.E}`);
   if(r.rec!=null)L.push(`🙌 Recepción media: ${r.rec} / 3`);if(r.srv!=null)L.push(`🎯 Saque medio: ${r.srv} / 3`);
   const tl=TESTS.map(t=>{const x=testsOf(p.id,t.k);if(!x.length)return null;const last=x[x.length-1],first=x[0];const d=x.length>1?+(last.v-first.v).toFixed(1):0;return `• ${t.n}: ${last.v} ${t.u}${d?` (${d>0?"+":""}${d} desde ${fmtDate(first.date)})`:""}`}).filter(Boolean);
-  if(tl.length)L.push("","💪 *Pruebas físicas*",...tl);L.push("","¡Sigue así! "+(db.slogan||"Más que un equipo, una familia")+" ❤️🖤");return L.join("\n")}
+  const pt=playerPT(p);if(pt)L.push(`⏱️ Sets jugados: ${pt.sets} (titular en ${pt.starts}) · ${pt.pc}% de los puntos en pista`);
+  if(tl.length)L.push("","💪 *Pruebas físicas*",...tl);
+  const gs=(p.goals||[]);if(gs.length)L.push("","🎯 *Objetivos*",...gs.map(g=>`${g.done?"✅":"⬜"} ${g.text}${!g.done&&g.due?" (hasta "+fmtDate(g.due)+")":""}`));L.push("","¡Sigue así! "+(db.slogan||"Más que un equipo, una familia")+" ❤️🖤");return L.join("\n")}
 function sendReport(id){const p=player(id);const g=(p.phone||"").replace(/\D/g,"");const url=`https://wa.me/${g?(/^[67]\d{8}$/.test(g)?"34"+g:g):""}?text=${encodeURIComponent(playerReport(p))}`;window.open(url,"_blank","noopener")}
+
+/* ---------- TIEMPO DE JUEGO ---------- */
+function playTime(){const ms=db.sessions.filter(s=>s.type==="partido"&&s.acta&&Object.keys(s.acta).length);const P={};let total=0,sets=0;
+  const g=id=>P[id]=P[id]||{sets:0,pts:0,starts:0,ms:new Set()};
+  ms.forEach(s=>Object.keys(s.acta).forEach(n=>{const st=actaState(s,+n);if(!st)return;sets++;total+=st.rallies.length;const on=new Set(st.A.lineup.filter(Boolean));st.A.lineup.forEach(id=>{if(id)g(id).starts++});st.subs.forEach(x=>on.add(x.in));if(st.A.libero)on.add(st.A.libero);
+    on.forEach(id=>{const x=g(id);x.sets++;x.ms.add(s.id)});st.rallies.forEach(r=>r.lu.forEach(id=>{if(id)g(id).pts++}))}));
+  return {ms,P,total,sets}}
+function playTimeCard(){const {ms,P,total,sets}=playTime();
+  if(!ms.length)return `<div class="card"><h2>⏱️ Tiempo de juego</h2><p class="muted" style="margin:0">Con el <b>modo acta</b> (rotación inicial y cambios) aquí verás cuántos sets y puntos juega cada una, para repartir minutos con justicia.</p></div>`;
+  const rows=sortedPlayers().map(p=>({p,x:P[p.id]||{sets:0,pts:0,starts:0,ms:new Set()}})).sort((a,b)=>b.x.pts-a.x.pts||b.x.sets-a.x.sets);
+  const conv=p=>ms.filter(s=>present(s,p.id)||s.rsvp?.[p.id]==="si").length;
+  const low=rows.filter(r=>conv(r.p)&&total&&r.x.pts/total<.15&&r.p.pos!=="Líbero");
+  return `<div class="card"><h2>⏱️ Tiempo de juego</h2><p class="muted" style="margin-top:0">${ms.length} partido${ms.length>1?"s":""} con acta · ${sets} sets · ${total} puntos jugados</p>
+   <table class="tbl ptime" style="width:100%"><tr><th style="text-align:left">Jugadora</th><th>Sets</th><th>Titular</th><th>En pista</th></tr>
+   ${rows.map(({p,x})=>{const pc=total?Math.round(x.pts*100/total):0;return `<tr><td style="text-align:left">${esc(p.number?p.number+" ":"")}${esc(p.name)}${injured(p)?" 🩹":""}</td><td>${x.sets}</td><td>${x.starts}</td><td><div class="ptbar"><i style="width:${pc}%"></i><span>${p.pos==="Líbero"&&!x.pts&&x.sets?"líbero":pc+"%"}</span></div></td></tr>`}).join("")}</table>
+   ${low.length?`<p class="warntxt">Juegan poco: <b>${low.map(r=>esc(r.p.name.split(" ")[0])).join(", ")}</b> (menos del 15% de los puntos aunque vienen). Si es lo que quieres, perfecto; si no, busca sets o finales de set para darles minutos.</p>`:""}
+   <p class="muted">“En pista” es el % de puntos que ha estado en el campo. A la líbero no se le cuentan puntos porque entra y sale sin cambio oficial.</p></div>`}
+function playerPT(p){const {P,total}=playTime();const x=P[p.id];if(!x||!total)return null;return {sets:x.sets,starts:x.starts,pc:Math.round(x.pts*100/total),ms:x.ms.size}}
+
+/* ---------- OBJETIVOS PERSONALES ---------- */
+function goalsCard(p){const G=(p.goals||[]).slice().sort((a,b)=>(a.done?1:0)-(b.done?1:0)||(a.due||"9").localeCompare(b.due||"9"));
+  return `<div class="card"><h3>🎯 Objetivos</h3>
+   ${G.length?`<ul class="list goals">${G.map(g=>{const late=!g.done&&g.due&&g.due<today();return `<li><label class="grow goal ${g.done?"done":""}"><input type="checkbox" ${g.done?"checked":""} onchange="goalToggle('${p.id}','${g.id}')"> <span>${esc(g.text)}${g.due?`<small class="muted ${late?"neg":""}"> · ${late?"vencido ":"hasta "}${fmtDate(g.due)}</small>`:""}</span></label><button class="btn sec small" aria-label="Quitar" onclick="goalDel('${p.id}','${g.id}')">✕</button></li>`}).join("")}</ul>`:`<p class="muted" style="margin-top:0">Pon 1–3 objetivos concretos con ella (por ejemplo “Recepción media de 2 en partido” o “Saque flotante: 8 de 10 dentro”). Salen en su informe de WhatsApp.</p>`}
+   <form style="margin-top:8px" onsubmit="goalAdd(event,'${p.id}')"><input name="t" placeholder="Nuevo objetivo" required maxlength="120"><div class="row" style="margin-top:8px;align-items:center"><span class="muted">Hasta</span><input name="d" type="date" class="grow" style="width:auto" title="Fecha límite (opcional)"><button class="btn small">Añadir</button></div></form></div>`}
+function goalAdd(e,pid){e.preventDefault();const f=e.target,p=player(pid);p.goals=p.goals||[];p.goals.push({id:uid(),text:f.t.value.trim(),due:f.d.value||"",done:false,at:Date.now()});save();render()}
+function goalToggle(pid,id){const g=(player(pid).goals||[]).find(x=>x.id===id);if(!g)return;g.done=!g.done;g.at=Date.now();save();render();if(g.done)toast("🎉 ¡Objetivo cumplido!")}
+function goalDel(pid,id){const p=player(pid);p.goals=(p.goals||[]).filter(x=>x.id!==id);save();render()}
+
+/* ---------- MENSAJE DE LA SEMANA ---------- */
+function weekSessions(){const end=addDays(today(),7);return db.sessions.filter(s=>s.date>=today()&&s.date<=end).sort((a,b)=>(a.date+(a.time||"")).localeCompare(b.date+(b.time||"")))}
+function weekText(){const ws=weekSessions();const L=[`🏐 *${db.team} · Esta semana*`,""];
+  if(!ws.length)L.push("No hay nada programado estos días. ¡A descansar! 😴");
+  ws.forEach(s=>{L.push(`${s.type==="partido"?"🏆 *Partido*":"🏋️ Entreno"} · ${fmtDate(s.date)}${s.time?" · "+s.time:""}${s.title?" · "+s.title:""}${s.place?"\n   📍 "+s.place:""}${sync.url?"\n   👉 Confirma: "+confirmLink(s):""}`)});
+  const fees=db.fees.filter(f=>db.players.some(p=>!f.paid?.[p.id]));if(fees.length)L.push("","💶 Recordad que hay cuotas pendientes: "+fees.map(f=>f.name||f.title||"cuota").join(", ")+". Si ya pagaste, ¡gracias!");
+  L.push("",(db.slogan||"Más que un equipo, una familia")+" ❤️🖤");return L.join("\n")}
+function weekCard(){const ws=weekSessions();if(!db.players.length)return "";
+  return `<div class="card weekcard"><div class="row" style="align-items:center"><div class="grow"><b>📣 Mensaje de la semana</b><div class="muted">${ws.length?ws.length+" evento"+(ws.length>1?"s":"")+" en los próximos 7 días":"Nada en los próximos 7 días"}${sync.url&&ws.length?" · con enlaces para confirmar":""}</div></div><a class="btn small" href="https://wa.me/?text=${encodeURIComponent(weekText())}" target="_blank" rel="noopener">💬 Enviar al grupo</a></div></div>`}
 
 /* ---------- IMPORTAR PLANTILLA DE LA FEDERACIÓN ---------- */
 function titleCase(n){return String(n||"").toLowerCase().replace(/(^|[\s\-'])([a-záéíóúñü])/g,(m,a,b)=>a+b.toUpperCase()).replace(/\b(De|Del|La|Las|Los|Y)\b/g,w=>w.toLowerCase()).replace(/^./,c=>c.toUpperCase())}
@@ -1002,6 +1045,7 @@ function vStats(){
   <div class="card"><h2>Partido a partido</h2><ul class="list">${[...ms].filter(s=>evs(s).length||s.date<=today()).sort((a,b)=>b.date.localeCompare(a.date)).map(s=>{const m=matchSum(s);const sc=setScores(s);return `<li class="click" onclick="tab='cal';openSession('${s.id}')"><div class="grow"><b>${fmtDate(s.date)}</b> ${esc(s.title)} ${sc.sets.length?`<span class="pill ${sc.won>sc.lost?"ok":sc.won<sc.lost?"bad":""}">${sc.won}-${sc.lost}</span>`:""}<div class="muted">Ganados ${m.won} + ${m.opp} por error rival · perdidos ${m.given} por errores + ${m.rival} del rival</div></div><span>›</span></li>`}).join("")}</ul>
   <div class="row" style="margin-top:8px"><button class="btn sec small" onclick="exportStatsCSV()">📊 Exportar CSV</button></div></div>
   ${rotSeasonCard()}
+  ${playTimeCard()}
   ${mapStatsCard()}
   ${testsTeamCard()}
   <div class="card"><h3>Consejos</h3><p class="muted" style="margin:0">Empieza con una pregunta concreta (“¿por qué perdemos los terceros sets?”). Comparte una conclusión por semana con el equipo, y los números individuales háblalos en privado, como un espejo, no como una nota.</p></div>`;
