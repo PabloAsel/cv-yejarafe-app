@@ -435,6 +435,7 @@ function vHome(){
     if(nx){const rv=L.teams.find(t=>t.id===(nx.home===me.id?nx.away:nx.home))||{name:'?'};h+=`<div class="card click" onclick="go('leagues');selLeague='${L.id}';selTeam='${me.id}';render()"><div class="muted">Próximo partido de liga · ${nx.j?'J'+nx.j+' · ':''}${fmtDate(nx.date)}${nx.time&&nx.time!=='00:00'?' '+nx.time:''}</div><div class="vs"><div>${crest(L.teams.find(t=>t.id===nx.home),48)}<b>${esc(tname(L,nx.home))}</b></div><span>VS</span><div>${crest(L.teams.find(t=>t.id===nx.away),48)}<b>${esc(tname(L,nx.away))}</b></div></div>${nx.venue?`<div class="muted">📍 ${esc(nx.venue)} · ${nx.home===me.id?'en casa':'fuera'}</div>`:''}</div>`}
     h+=`<div class="card click" onclick="go('leagues');selLeague='${L.id}';render()"><div class="muted">${esc(L.name)}</div><h2 style="margin:4px 0;display:flex;align-items:center;gap:8px">${crest(st[i].t,32)}${i+1}º · ${st[i].pts} puntos</h2><div class="muted">${st[i].pg} ganados · ${st[i].pp} perdidos · sets ${st[i].sf}-${st[i].sc}</div></div>`});
   h+=`<div class="quick"><button onclick="go('board')"><span>✏️</span>Pizarra</button><button onclick="go('ex')"><span>🏋️</span>Ejercicios</button><button onclick="go('stats')"><span>📊</span>Estadísticas</button><button onclick="go('leagues')"><span>🏆</span>Ligas</button></div>`;
+  h+=birthdaysCard();
   h+=`<div class="kpis" style="margin-bottom:12px"><div class="kpi"><b>${db.players.length}</b><small>jugadoras</small></div><div class="kpi"><b>${teamAtt()}%</b><small>asistencia</small></div><div class="kpi click" onclick="go('money')"><b>${pend}</b><small>cuotas pendientes</small></div></div>`;
   const recent=[...db.notes].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,2);
   if(recent.length)h+=`<div class="card"><div class="row" style="justify-content:space-between"><h3 style="margin:0">Últimas notas</h3><button class="btn sec small" onclick="go('notes')">Ver todas</button></div>${recent.map(n=>`<div style="margin-top:10px"><b>${esc(n.title||"Nota")}</b> <span class="muted">${fmtDate(n.date)}</span><div class="muted note">${esc(n.text.slice(0,140))}${n.text.length>140?"…":""}</div></div>`).join("")}</div>`;
@@ -523,7 +524,7 @@ function vPlayer(p){
   const digits=(p.phone||"").replace(/\D/g,"");const wa=digits?`https://wa.me/${/^[67]\d{8}$/.test(digits)?"34"+digits:digits}`:"";
   return `<div class="row" style="margin-bottom:10px"><button class="btn sec small" onclick="selPlayer=null;render()">‹ Plantilla</button></div>
   <div class="card"><div class="row">${avatar(p,true)}<div class="grow"><h2 style="margin:0">${esc(p.number?"#"+p.number+" ":"")}${esc(p.name)}</h2><div style="margin-top:4px">${posTag(p.pos)}</div>${p.phone?`<div class="muted">${esc(p.phone)}</div>`:""}</div></div>
-  <div class="row" style="margin-top:10px"><button class="btn sec small" onclick="editPlayer('${p.id}')">Editar</button><label class="btn sec small" style="margin:0;color:var(--text)">📷 ${p.photo?"Cambiar foto":"Poner foto"}<input type="file" accept="image/*" hidden onchange="setPhoto('${p.id}',this)"></label>${p.photo?`<button class="btn danger small" onclick="player('${p.id}').photo='';save();render()">Quitar foto</button>`:""}${wa?`<a class="btn sec small" href="${wa}" target="_blank" rel="noopener">💬 WhatsApp</a>`:""}</div></div>
+  <div class="row" style="margin-top:10px"><button class="btn sec small" onclick="editPlayer('${p.id}')">Editar</button><button class="btn small" onclick="sendReport('${p.id}')">💬 Mandarle su informe</button><label class="btn sec small" style="margin:0;color:var(--text)">📷 ${p.photo?"Cambiar foto":"Poner foto"}<input type="file" accept="image/*" hidden onchange="setPhoto('${p.id}',this)"></label>${p.photo?`<button class="btn danger small" onclick="player('${p.id}').photo='';save();render()">Quitar foto</button>`:""}${wa?`<a class="btn sec small" href="${wa}" target="_blank" rel="noopener">💬 WhatsApp</a>`:""}</div></div>
   ${physCard(p)}
   ${testsCard(p)}
   <div class="kpis" style="margin-bottom:12px"><div class="kpi"><b>${pct(p.id)}%</b><small>asistencia</small></div><div class="kpi"><b>${r.pts}</b><small>puntos (${r.pj} PJ)</small></div><div class="kpi"><b>${r.E}</b><small>errores</small></div>
@@ -687,15 +688,15 @@ function undoEv(sid){const s=sess(sid);if(!evs(s).length)return;const x=s.ev.pop
 // eventos extra: {p:"team",t:"P"} punto nuestro sin jugadora · {p:"us"|"opp",t:"T"} tiempo · {p:"us",t:"C",out,in} cambio
 const ROMAN=["I","II","III","IV","V","VI"];
 function setDone(x){const t=x.n===5?15:25;return (x.us>=t||x.them>=t)&&Math.abs(x.us-x.them)>=2}
-function actaState(s,n){const A=(s.acta||{})[n];if(!A)return null;let lu=A.lineup.slice(),srv=A.serve,rot=0,us=0,them=0;const subs=[],to={us:[],opp:[]},rots={},log=[];
+function actaState(s,n){const A=(s.acta||{})[n];if(!A)return null;let lu=A.lineup.slice(),srv=A.serve,rot=0,us=0,them=0;const subs=[],to={us:[],opp:[]},rots={},log=[],rallies=[];
   evs(s).forEach(e=>{if((e.s||1)!==n)return;
     if(e.t==="C"){const i=lu.indexOf(e.out);if(i>=0)lu[i]=e.in;subs.push({out:e.out,in:e.in,us,them});return}
     if(e.t==="T"){to[e.p==="opp"?"opp":"us"].push(us+"-"+them);return}
     const w=isOurPt(e)?"us":isTheirPt(e)?"them":null;if(!w)return;
-    const R=rots[rot]=rots[rot]||{won:0,lost:0,srvWon:0,srvN:0};if(srv==="us"){R.srvN++;if(w==="us")R.srvWon++}if(w==="us")R.won++;else R.lost++;
+    rallies.push({w,srv,rot,lu:lu.slice()});const R=rots[rot]=rots[rot]||{won:0,lost:0,srvWon:0,srvN:0};if(srv==="us"){R.srvN++;if(w==="us")R.srvWon++}if(w==="us")R.won++;else R.lost++;
     if(w==="us"){us++;if(srv==="them"){lu=[...lu.slice(1),lu[0]];rot=(rot+1)%6}}else them++;
     srv=w;log.push(w)});
-  return {A,lu,srv,rot,us,them,subs,to,rots,log}}
+  return {A,lu,srv,rot,us,them,subs,to,rots,log,rallies}}
 function pname(id,short){const p=player(id);if(!p)return "?";return short?(p.number?p.number:p.name.split(" ")[0]):(p.number?p.number+" ":"")+p.name}
 function actaCard(s,set){const st=actaState(s,set);
   if(!st)return `<div class="acta empty-acta"><b>📋 Modo acta</b><p class="muted">Pon la rotación inicial y la app lleva sola quién saca, la rotación, los tiempos muertos y los cambios.</p><button class="btn" onclick="actaLineup('${s.id}',${set})">Poner rotación inicial del set ${set}</button></div>`;
@@ -756,6 +757,7 @@ function openActa(sid){const s=sess(sid);const D=actaData(s);const d=$("#dlg");
   ${D.sets.filter(x=>x.st).map(x=>`<div class="actaset"><b>Set ${x.n}</b> · Inicio: ${x.st.A.lineup.map((id,i)=>ROMAN[i]+" "+esc(pname(id,true))).join(", ")}${x.st.A.libero?" · L "+esc(pname(x.st.A.libero,true)):""} · ${x.st.A.serve==="us"?"sacamos primero":"sacó el rival primero"}
     ${x.st.subs.length?`<br>Cambios: ${x.st.subs.map(c=>`${esc(pname(c.in,true))} por ${esc(pname(c.out,true))} (${c.us}-${c.them})`).join(" · ")}`:""}
     ${x.st.to.us.length||x.st.to.opp.length?`<br>Tiempos: nuestros ${x.st.to.us.join(", ")||"–"} · rival ${x.st.to.opp.join(", ")||"–"}`:""}</div>`).join("")}
+  ${(()=>{const {T}=rallyStats([s]);return T.n?`<div class="kpis" style="margin-top:10px"><div class="kpi"><b>${pctx(T.so,T.soN)}</b><small>side-out</small></div><div class="kpi"><b>${pctx(T.bp,T.bpN)}</b><small>break-point</small></div></div>`:""})()}
   ${Object.keys(D.rots).length?`<h4>Puntos por rotación</h4><p class="muted" style="margin-top:0">Rotación 1 = la inicial de cada set. Te dice dónde sufrís más.</p><table class="tbl"><tr><th>Rot.</th><th>Ganados</th><th>Perdidos</th><th>+/-</th><th>Al saque</th></tr>${Object.entries(D.rots).sort((a,b)=>a[0]-b[0]).map(([k,v])=>`<tr><td>${+k+1}</td><td>${v.won}</td><td>${v.lost}</td><td class="${v.won-v.lost<0?"neg":"posv"}">${v.won-v.lost>0?"+":""}${v.won-v.lost}</td><td>${v.srvN?v.srvWon+"/"+v.srvN:"–"}</td></tr>`).join("")}</table>`:""}
   ${D.top.length?`<h4>Jugadoras</h4><table class="tbl"><tr><th>Jugadora</th><th>Pts</th><th>A</th><th>B</th><th>S</th><th>Err</th></tr>${D.top.map(r=>`<tr><td>${esc(pname(r.p.id))}</td><td><b>${r.pts}</b></td><td>${r.A}</td><td>${r.B}</td><td>${r.S}</td><td>${r.E}</td></tr>`).join("")}</table>`:""}
   <div class="row" style="margin-top:14px;justify-content:flex-end"><a class="btn" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(actaText(s,D))}">💬 Compartir</a><button class="btn sec" onclick="$('#dlg').close()">Cerrar</button></div></div>`;
@@ -828,6 +830,34 @@ function rivalCard(s){if(!s.title)return "";const R=findRival(s.title);db.rivals
    <textarea rows="4" placeholder="Jugadoras clave, por dónde atacan, cómo sacan, su colocadora, qué les hace daño…" onchange="db.rivals=db.rivals||{};db.rivals['${rivalKey(s.title)}']={note:this.value,at:Date.now()};save()">${esc(note)}</textarea>
    <p class="muted" style="margin:4px 0 0">Las notas se guardan por rival y vuelven a salir en el siguiente partido contra ellos.</p></details>`}
 
+/* ---------- ROTACIONES TEMPORADA, SIDE-OUT, CUMPLEAÑOS, INFORME ---------- */
+function setterIdx(lu){const i=lu.findIndex(id=>/coloc/i.test((player(id)||{}).pos||""));return i}
+function rallyStats(sessions){const R={},T={so:0,soN:0,bp:0,bpN:0,n:0};let bySetter=false;
+  sessions.forEach(s=>Object.keys(s.acta||{}).forEach(n=>{const st=actaState(s,+n);if(!st)return;st.rallies.forEach(r=>{T.n++;
+    if(r.srv==="them"){T.soN++;if(r.w==="us")T.so++}else{T.bpN++;if(r.w==="us")T.bp++}
+    const si=setterIdx(r.lu);const key=si>=0?"S"+(si+1):"R"+(r.rot+1);if(si>=0)bySetter=true;
+    const x=R[key]=R[key]||{won:0,lost:0,so:0,soN:0,bp:0,bpN:0};if(r.w==="us")x.won++;else x.lost++;if(r.srv==="them"){x.soN++;if(r.w==="us")x.so++}else{x.bpN++;if(r.w==="us")x.bp++}})}));
+  return {R,T,bySetter}}
+const pctx=(a,b)=>b?Math.round(a*100/b)+"%":"–";
+function rotSeasonCard(){const ms=db.sessions.filter(s=>s.type==="partido"&&s.acta&&Object.keys(s.acta).length);
+  if(!ms.length)return `<div class="card"><h2>🔄 Rendimiento por rotación</h2><p class="muted" style="margin:0">Usa el <b>modo acta</b> en los partidos (poner la rotación inicial) y aquí verás en qué rotación ganáis y perdéis más puntos, y vuestro side-out y break-point.</p></div>`;
+  const {R,T,bySetter}=rallyStats(ms);const keys=Object.keys(R).sort();const worst=keys.slice().sort((a,b)=>(R[a].won-R[a].lost)-(R[b].won-R[b].lost))[0];
+  const label=k=>k[0]==="S"?"Colocadora en "+ROMAN[+k.slice(1)-1]:"Rotación "+k.slice(1);
+  return `<div class="card"><h2>🔄 Rendimiento por rotación</h2>
+   <div class="kpis"><div class="kpi"><b>${pctx(T.so,T.soN)}</b><small>side-out<br>(saca el rival)</small></div><div class="kpi"><b>${pctx(T.bp,T.bpN)}</b><small>break-point<br>(sacamos)</small></div><div class="kpi"><b>${T.n}</b><small>jugadas</small></div></div>
+   <table class="tbl" style="width:100%;margin-top:10px"><tr><th style="text-align:left">${bySetter?"Rotación":"Rotación"}</th><th>+/-</th><th>Side-out</th><th>Break</th></tr>
+   ${keys.map(k=>{const x=R[k],d=x.won-x.lost;return `<tr ${k===worst&&d<0?'style="background:color-mix(in srgb,var(--brand) 12%,transparent)"':""}><td style="text-align:left">${label(k)}</td><td class="${d<0?"neg":"posv"}">${d>0?"+":""}${d}</td><td>${pctx(x.so,x.soN)}</td><td>${pctx(x.bp,x.bpN)}</td></tr>`}).join("")}</table>
+   <p class="muted">${bySetter?"Las rotaciones se nombran por dónde está la colocadora (I = sacando), como en los equipos de liga. ":"Pon la posición “Colocador” en la ficha de tu colocadora y las rotaciones se nombrarán por dónde está ella, como en los equipos de liga. "}<b>Side-out</b>: % de puntos que ganáis cuando saca el rival (bueno a partir del 55-60%). <b>Break-point</b>: % que ganáis con vuestro saque (bueno a partir del 40%).${worst&&R[worst].won<R[worst].lost?` La rotación que más sufre es <b>${label(worst)}</b>: dedícale tiempo en el entreno.`:""}</p></div>`}
+function birthdaysCard(){const t=new Date();t.setHours(0,0,0,0);const list=db.players.filter(p=>p.birth).map(p=>{const b=new Date(p.birth+"T12:00");let d=new Date(t.getFullYear(),b.getMonth(),b.getDate());if(d<t)d=new Date(t.getFullYear()+1,b.getMonth(),b.getDate());const days=Math.round((d-t)/864e5);return {p,days,age:d.getFullYear()-b.getFullYear(),d}}).filter(x=>x.days<=14).sort((a,b)=>a.days-b.days);
+  if(!list.length)return "";const wa=p=>{const g=(p.phone||"").replace(/\D/g,"");return g?`https://wa.me/${/^[67]\d{8}$/.test(g)?"34"+g:g}?text=${encodeURIComponent("¡Feliz cumpleaños, "+p.name.split(" ")[0]+"! 🎂🏐 De parte de todo el "+db.team+" ❤️🖤")}`:""};
+  return `<div class="card"><h3>🎂 Cumpleaños</h3><ul class="list">${list.map(x=>`<li>${avatar(x.p)}<div class="grow"><b>${esc(x.p.name)}</b><div class="muted">${x.days===0?"¡Hoy! ":x.days===1?"Mañana · ":"En "+x.days+" días · "}cumple ${x.age}</div></div>${wa(x.p)?`<a class="btn sec small" target="_blank" rel="noopener" href="${wa(x.p)}">💬 Felicitar</a>`:""}</li>`).join("")}</ul></div>`}
+function playerReport(p){const {rows}=seasonRows();const r=rows.find(x=>x.p.id===p.id)||{};const L=[`🏐 *${db.team} · Informe de ${p.name.split(" ")[0]}*`,`📅 ${fmtDate(today())}`,"",`✅ Asistencia: ${pct(p.id)}%`];
+  if(r.pj)L.push(`🏆 Partidos jugados: ${r.pj}`,`⭐ Puntos: ${r.pts} (ataque ${r.A}, bloqueo ${r.B}, saque ${r.S}) · ${(r.pts/r.pj).toFixed(1)} por partido`,`⚠️ Errores: ${r.E}`);
+  if(r.rec!=null)L.push(`🙌 Recepción media: ${r.rec} / 3`);if(r.srv!=null)L.push(`🎯 Saque medio: ${r.srv} / 3`);
+  const tl=TESTS.map(t=>{const x=testsOf(p.id,t.k);if(!x.length)return null;const last=x[x.length-1],first=x[0];const d=x.length>1?+(last.v-first.v).toFixed(1):0;return `• ${t.n}: ${last.v} ${t.u}${d?` (${d>0?"+":""}${d} desde ${fmtDate(first.date)})`:""}`}).filter(Boolean);
+  if(tl.length)L.push("","💪 *Pruebas físicas*",...tl);L.push("","¡Sigue así! "+(db.slogan||"Más que un equipo, una familia")+" ❤️🖤");return L.join("\n")}
+function sendReport(id){const p=player(id);const g=(p.phone||"").replace(/\D/g,"");const url=`https://wa.me/${g?(/^[67]\d{8}$/.test(g)?"34"+g:g):""}?text=${encodeURIComponent(playerReport(p))}`;window.open(url,"_blank","noopener")}
+
 /* ---------- ESTADÍSTICAS DE TEMPORADA ---------- */
 function seasonRows(){
   const ms=db.sessions.filter(s=>s.type==="partido");
@@ -857,6 +887,7 @@ function vStats(){
   </tbody></table></div><p class="muted">PJ = partidos jugados · Rec y Saq★ = nota media 0-3. En gris, quien ha jugado poco: no saques conclusiones todavía. Mira la proporción: no es lo mismo 10 puntos de ataque que 10 con 5 bloqueos. Toca una fila para ver su ficha.</p></div>
   <div class="card"><h2>Partido a partido</h2><ul class="list">${[...ms].filter(s=>evs(s).length||s.date<=today()).sort((a,b)=>b.date.localeCompare(a.date)).map(s=>{const m=matchSum(s);const sc=setScores(s);return `<li class="click" onclick="tab='cal';openSession('${s.id}')"><div class="grow"><b>${fmtDate(s.date)}</b> ${esc(s.title)} ${sc.sets.length?`<span class="pill ${sc.won>sc.lost?"ok":sc.won<sc.lost?"bad":""}">${sc.won}-${sc.lost}</span>`:""}<div class="muted">Ganados ${m.won} + ${m.opp} por error rival · perdidos ${m.given} por errores + ${m.rival} del rival</div></div><span>›</span></li>`}).join("")}</ul>
   <div class="row" style="margin-top:8px"><button class="btn sec small" onclick="exportStatsCSV()">📊 Exportar CSV</button></div></div>
+  ${rotSeasonCard()}
   ${mapStatsCard()}
   ${testsTeamCard()}
   <div class="card"><h3>Consejos</h3><p class="muted" style="margin:0">Empieza con una pregunta concreta (“¿por qué perdemos los terceros sets?”). Comparte una conclusión por semana con el equipo, y los números individuales háblalos en privado, como un espejo, no como una nota.</p></div>`;
