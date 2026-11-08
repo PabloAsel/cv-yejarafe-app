@@ -205,6 +205,32 @@ nav.tabs button{font-size:.66rem}
 @media (min-width:1000px){.libgrid{grid-template-columns:1fr 1fr 1fr}}
 
 .tile{display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-start}
+/* modo acta */
+.acta{background:var(--bg);border-radius:14px;padding:10px;margin:0 0 12px}
+.empty-acta p{margin:4px 0 10px}
+.acta-head{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+.minicourt,.lineup-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;position:relative;padding-top:20px}
+.minicourt .net,.lineup-grid .net{position:absolute;top:0;left:0;right:0;height:14px;background:repeating-linear-gradient(90deg,#111 0 6px,#fff 6px 9px);color:transparent;border-radius:3px;font-size:0}
+.minicourt .pos{position:relative;background:#e8894b;color:#fff;border-radius:10px;padding:8px 4px;text-align:center;min-height:62px;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.minicourt .pos small{position:absolute;top:3px;left:6px;font-size:.66rem;opacity:.85;font-weight:700}
+.minicourt .pos b{font-family:var(--disp);font-style:italic;font-size:1.5rem;line-height:1}
+.minicourt .pos span{font-size:.72rem;opacity:.95;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.minicourt .pos.srv{box-shadow:0 0 0 3px #ffd60a inset}
+.minicourt .pos i{position:absolute;top:2px;right:5px;font-style:normal}
+.acta-btns{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:8px}
+.acta-btns button{border:0;border-radius:10px;background:var(--card);color:var(--text);font:inherit;font-size:.74rem;font-weight:700;padding:8px 2px;min-height:52px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px}
+.acta-btns button small{color:var(--muted);font-weight:600}.acta-btns button:disabled{opacity:.4}
+.pos-sel{display:flex;flex-direction:column;gap:2px;margin:0}.pos-sel small{font-weight:700;color:var(--muted)}.pos-sel select{width:100%}
+.setend{display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap;border-radius:12px;padding:10px 12px;margin-bottom:10px;background:var(--bg)}
+.setend.win{background:color-mix(in srgb,#16a34a 18%,var(--card))}.setend.loss{background:color-mix(in srgb,var(--brand) 14%,var(--card))}
+#totimer{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(84px + env(safe-area-inset-bottom));background:#0a0a0a;color:#fff;border-radius:99px;padding:10px 12px 10px 18px;z-index:60;font-size:1.05rem;display:flex;gap:10px;align-items:center;box-shadow:0 6px 20px rgba(0,0,0,.35)}
+#totimer b{font-size:1.4rem;font-family:var(--disp)}#totimer button{border:0;background:#333;color:#fff;border-radius:50%;width:30px;height:30px;cursor:pointer}
+.actasheet{overflow-x:auto}.actasheet .tbl{width:100%;border-collapse:collapse;font-size:.85rem;margin:10px 0}.actasheet .tbl th,.actasheet .tbl td{padding:5px 4px;border-bottom:1px solid var(--line);text-align:center}.actasheet .tbl td:first-child,.actasheet .tbl th:first-child{text-align:left}
+.actasheet .actaset{font-size:.85rem;background:var(--bg);border-radius:10px;padding:8px 10px;margin:6px 0}
+.actasheet h4{margin:14px 0 4px}.tbl .neg{color:var(--brand);font-weight:800}.tbl .posv{color:#16a34a;font-weight:800}
+.seg label{flex:1;padding:9px 6px;display:flex;gap:6px;align-items:center;justify-content:center;margin:0;font-weight:600;cursor:pointer}
+
+.ptbtns{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:12px}.ptbtns button{border:0;border-radius:12px;padding:10px 4px;font:inherit;font-weight:800;font-size:.85rem;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;min-height:56px}.ptbtns button small{font-weight:600;font-size:.68rem;opacity:.8}.ptbtns .us{background:color-mix(in srgb,#16a34a 18%,var(--card));color:var(--text)}.ptbtns .them{background:color-mix(in srgb,var(--brand) 16%,var(--card));color:var(--text)}
 /* pizarra v3 */
 .bwrap{background:var(--card);border-radius:var(--r);box-shadow:var(--shadow);padding:10px;margin-bottom:12px}
 .btop{display:flex;gap:6px;align-items:center;margin-bottom:8px}.btop input{min-width:0}
@@ -574,12 +600,12 @@ function planRm(sid,i){sess(sid).plan.splice(i,1);keepScroll(save)}
 
 /* ---------- PARTIDO EN DIRECTO ---------- */
 // eventos: {p:pid|'opp', t, v?, s:set}. A/B/S punto nuestro; E de jugadora = error (punto rival); E de 'opp' = error del rival (punto nuestro); R = punto ganado por el rival; r/q = nota 0-3 de recepción/saque
-const isOurPt=e=>(e.p!=="opp"&&"ABS".includes(e.t))||(e.p==="opp"&&e.t==="E");
+const isOurPt=e=>(e.p!=="opp"&&e.p!=="team"&&"ABS".includes(e.t))||(e.p==="opp"&&e.t==="E")||(e.p==="team"&&e.t==="P");
 const isTheirPt=e=>(e.p!=="opp"&&e.t==="E")||(e.p==="opp"&&e.t==="R");
-function setScores(s){const sets=[];for(let n=1;n<=5;n++){const e=evs(s).filter(x=>(x.s||1)===n);const us=e.filter(isOurPt).length,them=e.filter(isTheirPt).length;if(us||them)sets.push({n,us,them})}
+function setScores(s){/*acta*/const sets=[];for(let n=1;n<=5;n++){const e=evs(s).filter(x=>(x.s||1)===n);const us=e.filter(isOurPt).length,them=e.filter(isTheirPt).length;if(us||them)sets.push({n,us,them})}
   const done=x=>{const t=x.n===5?15:25;return (x.us>=t||x.them>=t)&&Math.abs(x.us-x.them)>=2};
   return {sets,won:sets.filter(x=>done(x)&&x.us>x.them).length,lost:sets.filter(x=>done(x)&&x.them>x.us).length}}
-function matchSum(s){const e=evs(s);return{won:e.filter(x=>x.p!=="opp"&&"ABS".includes(x.t)).length,opp:e.filter(x=>x.p==="opp"&&x.t==="E").length,given:e.filter(x=>x.t==="E"&&x.p!=="opp").length,rival:e.filter(x=>x.p==="opp"&&x.t==="R").length}}
+function matchSum(s){const e=evs(s);return{won:e.filter(isOurPt).length-e.filter(x=>x.p==="opp"&&x.t==="E").length,opp:e.filter(x=>x.p==="opp"&&x.t==="E").length,given:e.filter(x=>x.t==="E"&&x.p!=="opp").length,rival:e.filter(x=>x.p==="opp"&&x.t==="R").length}}
 const cnt=(list,pid,t)=>list.filter(e=>e.p===pid&&e.t===t).length;
 const avg=a=>a.length?(a.reduce((x,y)=>x+y,0)/a.length).toFixed(1):null;
 function liveStats(s){
@@ -595,18 +621,101 @@ function liveStats(s){
     srv:"Nota de cada saque: 0 = error, 1 = fácil para el rival, 2 = les complica, 3 = ace. Va aparte del marcador: si fue ace o error, apúntalo también en Puntos."}[statMode];
   return `<div class="card"><h2>📊 Partido en directo</h2>
   <div class="seg" style="margin-bottom:8px">${[1,2,3,4,5].map(n=>`<button class="${n===set?"on":""}" onclick="setSet('${s.id}',${n})">Set ${n}</button>`).join("")}</div>
+  ${setBanner(s)}
   <div class="score"><div>${us}<small>${esc(db.team)}</small></div><span class="sep">–</span><div>${them}<small>${esc(s.title||"Rival")}</small></div></div>
   <div class="muted" style="text-align:center;margin-bottom:10px">Sets ${sc.won}–${sc.lost}${sc.sets.length?" · "+sc.sets.map(x=>x.us+"-"+x.them).join(" · "):""}</div>
-  <div class="row" style="margin-bottom:12px"><button class="btn sec grow" onclick="addEv('${s.id}','opp','E')">＋ Error del rival</button><button class="btn sec grow" onclick="addEv('${s.id}','opp','R')">＋ Punto del rival</button></div>
+  ${actaCard(s,set)}
+  <div class="ptbtns"><button class="us" onclick="addEv('${s.id}','team','P')">＋ Punto nuestro<small>sin apuntar quién</small></button><button class="us" onclick="addEv('${s.id}','opp','E')">＋ Error del rival<small>punto nuestro</small></button><button class="them" onclick="addEv('${s.id}','opp','R')">＋ Punto del rival<small>punto suyo</small></button></div>
   <div class="seg" style="margin-bottom:8px">${[["pts","Puntos"],["rec","Recep. 0-3"],["srv","Saque 0-3"]].map(([k,l])=>`<button class="${statMode===k?"on":""}" onclick="statMode='${k}';keepScroll(()=>{})">${l}</button>`).join("")}</div>
   <p class="muted" style="margin-top:0">${help}</p>
   ${ps.length?`<ul class="list">${ps.map(p=>`<li style="flex-wrap:wrap"><div class="grow" style="min-width:100px"><b>${esc(p.number)}</b> ${esc(p.name)}</div>${row(p)}</li>`).join("")}</ul>`:`<div class="muted">Marca primero quién está presente en “Pasar lista”.</div>`}
-  <div class="row" style="margin-top:10px"><button class="btn sec" onclick="undoEv('${s.id}')">↶ Deshacer último</button></div></div>`;
+  <div class="row" style="margin-top:10px"><button class="btn sec" onclick="undoEv('${s.id}')">↶ Deshacer último</button>${evs(s).length?`<button class="btn sec" onclick="openActa('${s.id}')">📄 Ver acta</button>`:""}</div></div>`;
 }
 function setSet(sid,n){sess(sid).set=n;keepScroll(save)}
 function addEv(sid,p,t,v){const s=sess(sid);const e={p,t,s:s.set||1};if(v!==undefined)e.v=v;evs(s).push(e);keepScroll(save);if(navigator.vibrate)navigator.vibrate(15)}
 function undoEv(sid){const s=sess(sid);if(!evs(s).length)return;const x=s.ev.pop();keepScroll(save);
-  const lbl={A:"ataque",B:"bloqueo",S:"saque",E:"error",r:"recepción",q:"nota de saque"}[x.t];toast("Deshecho: "+(x.p==="opp"?(x.t==="E"?"error del rival":"punto del rival"):lbl+" de "+(player(x.p)?.name||"")))}
+  const lbl={A:"ataque",B:"bloqueo",S:"saque",E:"error",r:"recepción",q:"nota de saque"}[x.t];
+  toast("Deshecho: "+(x.t==="T"?"tiempo muerto":x.t==="C"?"cambio":x.t==="P"?"punto nuestro":x.p==="opp"?(x.t==="E"?"error del rival":"punto del rival"):lbl+" de "+(player(x.p)?.name||"")))}
+/* ---------- MODO ACTA ---------- */
+// s.acta[set] = {lineup:[pid pos1..pos6], serve:"us"|"them", libero}
+// eventos extra: {p:"team",t:"P"} punto nuestro sin jugadora · {p:"us"|"opp",t:"T"} tiempo · {p:"us",t:"C",out,in} cambio
+const ROMAN=["I","II","III","IV","V","VI"];
+function setDone(x){const t=x.n===5?15:25;return (x.us>=t||x.them>=t)&&Math.abs(x.us-x.them)>=2}
+function actaState(s,n){const A=(s.acta||{})[n];if(!A)return null;let lu=A.lineup.slice(),srv=A.serve,rot=0,us=0,them=0;const subs=[],to={us:[],opp:[]},rots={},log=[];
+  evs(s).forEach(e=>{if((e.s||1)!==n)return;
+    if(e.t==="C"){const i=lu.indexOf(e.out);if(i>=0)lu[i]=e.in;subs.push({out:e.out,in:e.in,us,them});return}
+    if(e.t==="T"){to[e.p==="opp"?"opp":"us"].push(us+"-"+them);return}
+    const w=isOurPt(e)?"us":isTheirPt(e)?"them":null;if(!w)return;
+    const R=rots[rot]=rots[rot]||{won:0,lost:0,srvWon:0,srvN:0};if(srv==="us"){R.srvN++;if(w==="us")R.srvWon++}if(w==="us")R.won++;else R.lost++;
+    if(w==="us"){us++;if(srv==="them"){lu=[...lu.slice(1),lu[0]];rot=(rot+1)%6}}else them++;
+    srv=w;log.push(w)});
+  return {A,lu,srv,rot,us,them,subs,to,rots,log}}
+function pname(id,short){const p=player(id);if(!p)return "?";return short?(p.number?p.number:p.name.split(" ")[0]):(p.number?p.number+" ":"")+p.name}
+function actaCard(s,set){const st=actaState(s,set);
+  if(!st)return `<div class="acta empty-acta"><b>📋 Modo acta</b><p class="muted">Pon la rotación inicial y la app lleva sola quién saca, la rotación, los tiempos muertos y los cambios.</p><button class="btn" onclick="actaLineup('${s.id}',${set})">Poner rotación inicial del set ${set}</button></div>`;
+  const L=st.lu,cell=i=>`<div class="pos ${i===0&&st.srv==="us"?"srv":""}"><small>${ROMAN[i]}</small><b>${esc(pname(L[i],true))}</b><span>${esc((player(L[i])||{}).name?.split(" ")[0]||"")}</span>${i===0&&st.srv==="us"?"<i>🏐</i>":""}</div>`;
+  const nsub=st.subs.length;
+  return `<div class="acta">
+   <div class="acta-head"><span class="pill">Rotación ${st.rot+1}</span><span class="pill ${st.srv==="us"?"ok":"warn"}">${st.srv==="us"?"🏐 Sacamos: "+esc(pname(L[0])):"Saca el rival"}</span>${st.A.libero?`<span class="pill">L: ${esc(pname(st.A.libero))}</span>`:""}</div>
+   <div class="minicourt"><div class="net">RED</div>${[3,2,1].map(cell).join("")}${[4,5,0].map(cell).join("")}</div>
+   <div class="acta-btns">
+    <button onclick="actaTO('${s.id}','us')" ${st.to.us.length>=2?"disabled":""}>⏱ Tiempo nuestro<small>${st.to.us.length}/2</small></button>
+    <button onclick="actaTO('${s.id}','opp')" ${st.to.opp.length>=2?"disabled":""}>⏱ Tiempo rival<small>${st.to.opp.length}/2</small></button>
+    <button onclick="actaSub('${s.id}')" ${nsub>=6?"disabled":""}>🔁 Cambio<small>${nsub}/6</small></button>
+    <button onclick="actaLineup('${s.id}',${set})">✎ Rotación<small>corregir</small></button></div>
+  </div>`}
+function actaLineup(sid,n){const s=sess(sid);s.acta=s.acta||{};const prev=s.acta[n]||s.acta[n-1]||null;const def=prev?prev.lineup:db.lineup.slots;
+  const ps=sortedPlayers().filter(p=>present(s,p.id));const all=ps.length>=6?ps:sortedPlayers();
+  const sel=(i)=>`<label class="pos-sel"><small>Posición ${ROMAN[i]}${i===0?" (saca)":""}</small><select name="p${i}"><option value="">—</option>${all.map(p=>`<option value="${p.id}" ${def[i]===p.id?"selected":""}>${esc(pname(p.id))}</option>`).join("")}</select></label>`;
+  const lib=prev?prev.libero:db.lineup.libero;const srv=prev?(s.acta[n]?prev.serve:(prev.serve==="us"?"them":"us")):"us";
+  const d=$("#dlg");d.innerHTML=`<form method="dialog" id="alf"><h3>Rotación inicial · Set ${n}</h3><p class="muted" style="margin-top:0">Como en la hoja de rotación: la de la posición I es la que saca primero.</p>
+   <div class="lineup-grid"><div class="net">RED</div>${[3,2,1,4,5,0].map(sel).join("")}</div>
+   <label>Líbero</label><select name="lib"><option value="">Sin líbero</option>${all.map(p=>`<option value="${p.id}" ${lib===p.id?"selected":""}>${esc(pname(p.id))}</option>`).join("")}</select>
+   <label>¿Quién saca primero?</label><div class="seg"><label><input type="radio" name="srv" value="us" ${srv==="us"?"checked":""}> Nosotros</label><label><input type="radio" name="srv" value="them" ${srv==="them"?"checked":""}> El rival</label></div>
+   <div class="row" style="margin-top:14px;justify-content:flex-end"><button value="cancel" class="btn sec">Cancelar</button><button value="ok" class="btn">Empezar</button></div></form>`;
+  d.showModal();d.onclose=()=>{if(d.returnValue!=="ok")return;const f=$("#alf");const lu=[0,1,2,3,4,5].map(i=>f["p"+i].value);
+    if(lu.some(x=>!x)||new Set(lu).size<6){toast("Elige 6 jugadoras distintas");setTimeout(()=>actaLineup(sid,n),50);return}
+    s.acta[n]={lineup:lu,serve:f.srv.value,libero:f.lib.value||null};s.set=n;lu.forEach(id=>{if(!s.att[id])s.att[id]="P"});keepScroll(save)}}
+function actaTO(sid,who){const s=sess(sid);const e={p:who,t:"T",s:s.set||1};evs(s).push(e);keepScroll(save);toast((who==="us"?"Tiempo muerto nuestro":"Tiempo muerto del rival")+" · 30 s");startTimer(30)}
+function startTimer(sec){let el=$("#totimer");if(!el){el=document.createElement("div");el.id="totimer";document.body.appendChild(el)}const end=Date.now()+sec*1000;clearInterval(el._i);
+  const tick=()=>{const r=Math.max(0,Math.ceil((end-Date.now())/1000));el.innerHTML=`⏱ <b>${r}</b> s<button onclick="this.parentNode.remove()">✕</button>`;if(!r){clearInterval(el._i);navigator.vibrate&&navigator.vibrate([200,100,200]);setTimeout(()=>el.remove(),1500)}};tick();el._i=setInterval(tick,250)}
+function actaSub(sid){const s=sess(sid);const n=s.set||1;const st=actaState(s,n);if(!st)return;
+  // regla: quien entró por otra solo puede salir por ella
+  const pair={};st.subs.forEach(x=>{pair[x.in]=x.out;pair[x.out]=x.in});
+  const bench=sortedPlayers().filter(p=>!st.lu.includes(p.id)&&p.id!==st.A.libero);
+  const d=$("#dlg");d.innerHTML=`<form method="dialog" id="asf"><h3>Cambio · Set ${n} <span class="pill">${st.subs.length}/6</span></h3>
+   <label>Sale</label><select name="out">${st.lu.map((id,i)=>`<option value="${id}">${ROMAN[i]} · ${esc(pname(id))}</option>`).join("")}</select>
+   <label>Entra</label><select name="in">${bench.map(p=>`<option value="${p.id}">${esc(pname(p.id))}</option>`).join("")}</select>
+   <p class="muted">Recuerda: quien entra por una jugadora solo puede volver a cambiarse por ella, y cada una sale y entra una sola vez por set.</p>
+   <div class="row" style="margin-top:14px;justify-content:flex-end"><button value="cancel" class="btn sec">Cancelar</button><button value="ok" class="btn">Hacer cambio</button></div></form>`;
+  d.showModal();d.onclose=()=>{if(d.returnValue!=="ok")return;const f=$("#asf");const o=f.out.value,i=f.in.value;if(!i)return;
+    if(pair[o]&&pair[o]!==i&&!confirm(`${pname(o)} entró por ${pname(pair[o])}: según el reglamento solo puede cambiarse por ella. ¿Hacer el cambio igualmente?`))return;
+    if(pair[i]&&pair[i]!==o&&!confirm(`${pname(i)} ya hizo un cambio con ${pname(pair[i])}. ¿Hacer el cambio igualmente?`))return;
+    evs(s).push({p:"us",t:"C",out:o,in:i,s:n});if(!s.att[i])s.att[i]="P";keepScroll(save);toast("Entra "+pname(i)+" por "+pname(o))}}
+function setBanner(s){const sc=setScores(s);const set=s.set||1;const cur=sc.sets.find(x=>x.n===set);
+  if(sc.won>=3||sc.lost>=3)return `<div class="setend ${sc.won>sc.lost?"win":"loss"}"><b>${sc.won>sc.lost?"🏆 ¡Partido ganado!":"Partido terminado"} ${sc.won}–${sc.lost}</b><button class="btn small" onclick="openActa('${s.id}')">📄 Ver acta</button></div>`;
+  if(cur&&setDone(cur)&&set<5)return `<div class="setend ${cur.us>cur.them?"win":"loss"}"><b>Set ${set} ${cur.us>cur.them?"ganado":"perdido"} ${cur.us}-${cur.them}</b><button class="btn small" onclick="nextSet('${s.id}')">Empezar set ${set+1} ›</button></div>`;
+  return ""}
+function nextSet(sid){const s=sess(sid);const n=(s.set||1)+1;s.set=n;save();if(s.acta&&s.acta[n-1])actaLineup(sid,n);else keepScroll(()=>{})}
+function actaData(s){const sc=setScores(s);const ps=sortedPlayers();
+  const sets=sc.sets.map(x=>{const st=actaState(s,x.n);const e=evs(s).filter(y=>(y.s||1)===x.n);
+    return {...x,st,A:e.filter(y=>y.p!=="opp"&&y.t==="A").length,B:e.filter(y=>y.p!=="opp"&&y.t==="B").length,S:e.filter(y=>y.p!=="opp"&&y.t==="S").length,E:e.filter(y=>y.p!=="opp"&&y.p!=="team"&&y.t==="E").length,oppE:e.filter(y=>y.p==="opp"&&y.t==="E").length}});
+  const top=ps.map(p=>{const e=evs(s).filter(y=>y.p===p.id);return {p,pts:e.filter(y=>"ABS".includes(y.t)).length,A:e.filter(y=>y.t==="A").length,B:e.filter(y=>y.t==="B").length,S:e.filter(y=>y.t==="S").length,E:e.filter(y=>y.t==="E").length}}).filter(r=>r.pts||r.E).sort((a,b)=>b.pts-a.pts);
+  const rots={};sets.forEach(x=>{if(!x.st)return;Object.entries(x.st.rots).forEach(([k,v])=>{const R=rots[k]=rots[k]||{won:0,lost:0,srvWon:0,srvN:0};for(const f in v)R[f]+=v[f]})});
+  return {sc,sets,top,rots}}
+function openActa(sid){const s=sess(sid);const D=actaData(s);const d=$("#dlg");
+  d.innerHTML=`<div class="actasheet"><h3>📄 Acta · ${esc(db.team)} ${D.sc.won}–${D.sc.lost} ${esc(s.title||"Rival")}</h3><div class="muted">${fmtDate(s.date)}${s.place?" · "+esc(s.place):""}</div>
+  <table class="tbl"><tr><th>Set</th><th>Marcador</th><th>Ataque</th><th>Bloq.</th><th>Saque</th><th>Err. rival</th><th>Err. nuestros</th></tr>
+   ${D.sets.map(x=>`<tr><td>${x.n}</td><td><b>${x.us}-${x.them}</b></td><td>${x.A}</td><td>${x.B}</td><td>${x.S}</td><td>${x.oppE}</td><td>${x.E}</td></tr>`).join("")}</table>
+  ${D.sets.filter(x=>x.st).map(x=>`<div class="actaset"><b>Set ${x.n}</b> · Inicio: ${x.st.A.lineup.map((id,i)=>ROMAN[i]+" "+esc(pname(id,true))).join(", ")}${x.st.A.libero?" · L "+esc(pname(x.st.A.libero,true)):""} · ${x.st.A.serve==="us"?"sacamos primero":"sacó el rival primero"}
+    ${x.st.subs.length?`<br>Cambios: ${x.st.subs.map(c=>`${esc(pname(c.in,true))} por ${esc(pname(c.out,true))} (${c.us}-${c.them})`).join(" · ")}`:""}
+    ${x.st.to.us.length||x.st.to.opp.length?`<br>Tiempos: nuestros ${x.st.to.us.join(", ")||"–"} · rival ${x.st.to.opp.join(", ")||"–"}`:""}</div>`).join("")}
+  ${Object.keys(D.rots).length?`<h4>Puntos por rotación</h4><p class="muted" style="margin-top:0">Rotación 1 = la inicial de cada set. Te dice dónde sufrís más.</p><table class="tbl"><tr><th>Rot.</th><th>Ganados</th><th>Perdidos</th><th>+/-</th><th>Al saque</th></tr>${Object.entries(D.rots).sort((a,b)=>a[0]-b[0]).map(([k,v])=>`<tr><td>${+k+1}</td><td>${v.won}</td><td>${v.lost}</td><td class="${v.won-v.lost<0?"neg":"posv"}">${v.won-v.lost>0?"+":""}${v.won-v.lost}</td><td>${v.srvN?v.srvWon+"/"+v.srvN:"–"}</td></tr>`).join("")}</table>`:""}
+  ${D.top.length?`<h4>Jugadoras</h4><table class="tbl"><tr><th>Jugadora</th><th>Pts</th><th>A</th><th>B</th><th>S</th><th>Err</th></tr>${D.top.map(r=>`<tr><td>${esc(pname(r.p.id))}</td><td><b>${r.pts}</b></td><td>${r.A}</td><td>${r.B}</td><td>${r.S}</td><td>${r.E}</td></tr>`).join("")}</table>`:""}
+  <div class="row" style="margin-top:14px;justify-content:flex-end"><a class="btn" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(actaText(s,D))}">💬 Compartir</a><button class="btn sec" onclick="$('#dlg').close()">Cerrar</button></div></div>`;
+  d.onclose=null;d.showModal()}
+function actaText(s,D){return `🏐 *${db.team} ${D.sc.won}–${D.sc.lost} ${s.title||"Rival"}*\n📅 ${fmtDate(s.date)}\nSets: ${D.sets.map(x=>x.us+"-"+x.them).join(" · ")}`+(D.top.length?`\n\n⭐ Puntos: ${D.top.slice(0,5).map(r=>r.p.name.split(" ")[0]+" "+r.pts).join(", ")}`:"")+`\n\n${db.slogan||"Más que un equipo, una familia"} ❤️🖤`}
+
 
 /* ---------- ESTADÍSTICAS DE TEMPORADA ---------- */
 function seasonRows(){
