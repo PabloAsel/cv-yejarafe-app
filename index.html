@@ -361,6 +361,8 @@ nav.tabs button.on{color:var(--brand)}
 .weekcard{border-left:4px solid var(--brand)}
 .tsel{background:rgba(255,255,255,.16);padding:2px 8px;border-radius:999px;font-weight:700;letter-spacing:0;opacity:1}#teamTitle{cursor:pointer;min-width:0}#teamTitle span{min-width:0}#teamTitle small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:62vw}
 .teamsheet h4{margin:14px 0 4px;text-transform:uppercase;font-size:.78rem;letter-spacing:.06em;color:var(--muted)}.teamsheet li.cur{background:color-mix(in srgb,var(--brand) 9%,transparent);border-radius:12px}
+.overview{border-top:4px solid var(--brand)}.ovcat{font-size:.72rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--brand)}.ovk{margin-top:12px}
+.rivtbl td,.rivtbl th{padding:7px 4px}.rivtbl tr.me{background:color-mix(in srgb,var(--brand) 10%,transparent);font-weight:700}.rivn{display:flex;align-items:center;gap:6px}.rivtbl .pill{font-size:.7rem;padding:1px 6px}
 </style>
 </head>
 <body>
@@ -418,6 +420,29 @@ const db=new Proxy({},{
   set(_,k,v){if(SCOPED.includes(k))VW[k]=v;else if(k==="lineup")curTeam().lineup=v;else root[k]=v;return true},
   has(_,k){return k in root},ownKeys(){return Reflect.ownKeys(root)},getOwnPropertyDescriptor(_,k){return {value:root[k],enumerable:true,configurable:true,writable:true}}});
 ensureTeams();
+function fedGuess(L){const n=L.name||"";return {cat:CATS.find(c=>norm(n).includes(norm(c)))||"",gen:/femenin/i.test(n)?"Femenino":/masculin/i.test(n)?"Masculino":/mixt/i.test(n)?"Mixto":""}}
+function autoSplit(){if(root.teams.length!==1||root.noSplit)return false;const ps=(root.players||[]).filter(p=>p.fed);if(ps.length<2)return false;
+  const own={};(root.leagues||[]).forEach(L=>L.teams.forEach(t=>{if(t.mine)(t.players||[]).forEach(fp=>own[fp.id]={L,t})}));
+  const G=new Map();ps.forEach(p=>{const o=own[p.fed];if(!o)return;if(!G.has(o.t.id))G.set(o.t.id,{o,ps:[]});G.get(o.t.id).ps.push(p)});
+  if(G.size<2)return false;flush();const t0=root.teams[0];const rest=(root.players||[]).filter(p=>!p.fed||!own[p.fed]).length;
+  const groups=[...G.values()].sort((a,b)=>b.ps.length-a.ps.length);
+  groups.forEach((g,i)=>{const gg=fedGuess(g.o.L);let t;
+    if(i===0&&!rest&&!t0.cat){t=t0;Object.assign(t,{cat:gg.cat||"Sénior",gen:gg.gen,sub:"",fed:g.o.t.id})}
+    else{t={id:"tf"+g.o.t.id,cat:gg.cat||"Sénior",gen:gg.gen,sub:"",fed:g.o.t.id};root.teams.push(t)}
+    g.ps.forEach(p=>p.tm=t.id)});
+  VW={};return true}
+const clubCase=n=>titleCase(n).replace(/\b(Cv|Cd|Ud|Ad|Ies|Cdv)\b/g,m=>m.toUpperCase());
+function teamLeague(){const fed=curTeam().fed;if(!fed)return null;for(const L of (db.leagues||[])){const t=L.teams.find(x=>x.id===fed);if(t)return {L,t}}return null}
+function teamOverview(){const t=curTeam();const TL=teamLeague();const n=db.players.length;const who=t.gen==="Masculino"?"jugadores":"jugadoras";
+  let k="";if(TL){const st=standings(TL.L);const i=st.findIndex(r=>r.t.id===TL.t.id);const r=st[i];if(r)k=`<div class="kpis ovk"><div class="kpi"><b>${i+1}º</b><small>de ${st.length}</small></div><div class="kpi"><b>${r.pts}</b><small>puntos</small></div><div class="kpi"><b>${r.pg}-${r.pp}</b><small>G-P</small></div></div>`}
+  return `<div class="card overview"><div class="row" style="align-items:center;gap:12px">${TL?crest(TL.t,52):`<img src="crest.png" width="52" height="52" alt="">`}<div class="grow"><div class="ovcat">${esc(t.cat||"Equipo")}${t.gen?" · "+esc(t.gen):""}${t.sub?" · "+esc(t.sub):""}</div><h2 style="margin:2px 0">${esc(TL?clubCase(TL.t.name):teamName(t))}</h2><div class="muted">${TL?esc(TL.L.name):"Sin liga asignada"} · ${n} ${who}</div></div><button class="btn sec small" onclick="openTeams()">Cambiar</button></div>${k}
+   ${TL?"":`<p class="muted" style="margin-bottom:0">Toca “Cambiar” y el lápiz de este equipo para elegir su categoría y su equipo de la federación: así verás aquí su liga y sus rivales.</p>`}</div>`}
+function rivalsCard(){const TL=teamLeague();if(!TL)return "";const {L,t}=TL;const st=standings(L);if(st.length<2)return "";
+  const nx=L.matches.filter(m=>(m.home===t.id||m.away===t.id)&&!setsOf(m)&&!m.postponed&&m.date>=today()).sort((a,b)=>(a.date+(a.time||"")).localeCompare(b.date+(b.time||"")))[0];const nid=nx?(nx.home===t.id?nx.away:nx.home):null;
+  const h2h=id=>{const ms=L.matches.filter(m=>setsOf(m)&&((m.home===t.id&&m.away===id)||(m.away===t.id&&m.home===id)));return ms.map(m=>{const r=setsOf(m);const mine=m.home===t.id?r.h:r.a,th=m.home===t.id?r.a:r.h;return `<span class="pill ${mine>th?"ok":"bad"}">${mine}-${th}</span>`}).join(" ")};
+  return `<div class="card"><h3 style="margin-top:0">🏆 Clasificación y rivales</h3><table class="tbl rivtbl" style="width:100%"><tr><th></th><th style="text-align:left">Equipo</th><th>Pts</th><th>G-P</th><th>Vs</th></tr>
+   ${st.map((r,i)=>`<tr class="${r.t.id===t.id?"me":"click"}" ${r.t.id===t.id?"":`onclick="tab='leagues';selLeague='${L.id}';selTeam='${r.t.id}';render();scrollTo(0,0)"`}><td>${i+1}</td><td style="text-align:left"><span class="rivn">${crest(r.t,20)}<span>${esc(clubCase(r.t.name))}${r.t.id===nid?` <span class="pill warn">próximo</span>`:""}</span></span></td><td><b>${r.pts}</b></td><td>${r.pg}-${r.pp}</td><td>${r.t.id===t.id?"":h2h(r.t.id)}</td></tr>`).join("")}</table>
+   <p class="muted" style="margin-bottom:0">Toca un rival para ver su plantilla y sus partidos. “Vs” son vuestros resultados contra él esta temporada.</p></div>`}
 function teamName(t,short){if(!t)return "";const g=short?({Femenino:"fem.",Masculino:"masc.",Mixto:"mixto"}[t.gen]||""):(t.gen||"").toLowerCase();return t.name||[t.cat,g,t.sub].filter(Boolean).join(" ")||"Equipo principal"}
 function teamCount(t,k){return (raw()[k]||[]).filter(x=>tmOf(x)===t.id).length}
 function switchTeam(id){if(id===curT)return;flush();curT=id;VW={};try{localStorage.setItem(TKEY,id)}catch(e){}selSession=null;selPlayer=null;selSlot=null;const d=$("#dlg");if(d.open){d.onclose=null;d.close()}go("home");toast("Equipo: "+teamName(curTeam()))}
@@ -469,6 +494,7 @@ function keepScroll(f){const y=scrollY;const open=[...document.querySelectorAll(
 
 function go(t){if(t==="board"){t="rot";rotTab="board"}if(t==="ex"&&tab==="ex")selExercise=null;tab=t;selSession=null;selSlot=null;selPlayer=null;selLeague=null;selTeam=null;render();scrollTo(0,0)}
 function render(){
+  if(autoSplit()){save();setTimeout(()=>toast("He separado la plantilla en "+root.teams.length+" equipos. Toca el nombre de arriba para cambiar."),400)}
   const myT=(db.leagues||[]).map(L=>L.teams.find(t=>t.mine)).find(t=>t&&t.logo);const TT={home:"Inicio",cal:"Calendario",roster:"Plantilla",stats:"Estadísticas",more:"Más",videos:"Vídeos",rot:"Táctica",ex:"Ejercicios",leagues:"Ligas",board:"Pizarra táctica",notes:"Notas",money:"Cuotas y gastos",settings:"Ajustes"};
   $("#teamTitle").innerHTML=`<img src="crest.png" alt="">`+`<span>${esc(db.team||"Mi equipo")}<small><b class="tsel">${esc(teamName(curTeam(),true))} ▾</b> · ${TT[tab]||""}</small></span>`;$("#teamTitle").onclick=openTeams;
   $("#app").classList.toggle("dash",tab==="home");
@@ -489,19 +515,21 @@ function vHome(){
   const next=up[0];
   const lastM=db.sessions.filter(s=>s.type==="partido"&&s.date<=today()&&evs(s).length).sort((a,b)=>b.date.localeCompare(a.date))[0];
   const pend=db.fees.reduce((n,f)=>n+db.players.filter(p=>!f.paid?.[p.id]).length,0);
-  if(!db.players.length&&root.teams.length>1)return `<div class="card"><h2>${esc(teamName(curTeam()))}</h2><p>Este equipo aún no tiene plantilla.</p><div class="row"><button class="btn" onclick="go('roster')">Ir a Plantilla</button><button class="btn sec" onclick="openTeams()">Cambiar de equipo</button></div></div>`;
+  if(!db.players.length&&root.teams.length>1)return teamOverview()+rivalsCard()+`<div class="card"><h2>${esc(teamName(curTeam()))}</h2><p>Este equipo aún no tiene plantilla.</p><div class="row"><button class="btn" onclick="go('roster')">Ir a Plantilla</button><button class="btn sec" onclick="openTeams()">Cambiar de equipo</button></div></div>`;
   if(!db.players.length)return `<div class="card"><h2>¡Bienvenido! 👋</h2><p>Empieza en 3 pasos:</p><ol><li>Añade a las jugadoras en <b>Plantilla</b> (puedes pegar la lista entera).</li><li>Crea el próximo entreno o partido en <b>Calendario</b>.</li><li>Envía la convocatoria por WhatsApp y pasa lista.</li></ol><div class="row"><button class="btn" onclick="go('roster')">Ir a Plantilla</button><button class="btn sec" onclick="loadDemo()">🎲 Probar con un equipo de ejemplo</button></div></div>`+(sync.url?"":syncHint());
   let h=db.players.some(p=>p.demo)?`<div class="card" style="border-color:var(--warn)"><div class="row"><div class="grow"><b>🎲 Estás viendo un equipo de ejemplo</b><div class="muted">Pruébalo todo. Cuando metas a tu equipo real, quítalo.</div></div><button class="btn danger small" onclick="clearDemo()">Quitar ejemplo</button></div></div>`:"";
+  h+=teamOverview();
   if(next){const r=rsvpCount(next);h+=`<div class="card click hero" onclick="tab='cal';openSession('${next.id}')"><div class="muted">${next.type==="partido"?"Próximo partido":"Próximo"}</div>${next.type==="partido"?`<div class="matchday">Match <span>day</span></div>`:""}<h2 style="margin:4px 0">${sessLabel(next)}</h2>${next.title?`<div>${esc(next.title)}</div>`:""}${next.place?`<div class="muted">📍 ${esc(next.place)}</div>`:""}
     <div class="row" style="margin-top:8px"><span class="pill ok">Van ${r.si}</span><span class="pill bad">No ${r.no}</span><span class="pill warn">Duda ${r.duda}</span><span class="pill">Sin responder ${r.none}</span></div></div>`}
   else h+=`<div class="card"><h2>Sin eventos próximos</h2><button class="btn" onclick="go('cal')">＋ Crear entreno o partido</button></div>`;
   if(lastM){const sc=setScores(lastM);h+=`<div class="card click" onclick="tab='cal';openSession('${lastM.id}')"><div class="muted">Último partido · ${fmtDate(lastM.date)}</div><h2 style="margin:4px 0">${esc(db.team)} ${sc.won} – ${sc.lost} ${esc(lastM.title||"Rival")}</h2><div class="muted">${sc.sets.map(x=>x.us+"-"+x.them).join(" · ")}</div></div>`}
   (db.leagues||[]).forEach(L=>{const st=standings(L);const fed=curTeam().fed;const i=st.findIndex(r=>fed?r.t.id===fed:r.t.mine);if(i<0)return;const me=st[i].t;const nx=L.matches.filter(m=>(m.home===me.id||m.away===me.id)&&!setsOf(m)&&!m.postponed&&m.date>=today()).sort((a,b)=>(a.date+(a.time||'')).localeCompare(b.date+(b.time||'')))[0];
     if(nx){const rv=L.teams.find(t=>t.id===(nx.home===me.id?nx.away:nx.home))||{name:'?'};h+=`<div class="card click" onclick="go('leagues');selLeague='${L.id}';selTeam='${me.id}';render()"><div class="muted">Próximo partido de liga · ${nx.j?'J'+nx.j+' · ':''}${fmtDate(nx.date)}${nx.time&&nx.time!=='00:00'?' '+nx.time:''}</div><div class="vs"><div>${crest(L.teams.find(t=>t.id===nx.home),48)}<b>${esc(tname(L,nx.home))}</b></div><span>VS</span><div>${crest(L.teams.find(t=>t.id===nx.away),48)}<b>${esc(tname(L,nx.away))}</b></div></div>${nx.venue?`<div class="muted">📍 ${esc(nx.venue)} · ${nx.home===me.id?'en casa':'fuera'}</div>`:''}</div>`}
-    h+=`<div class="card click" onclick="go('leagues');selLeague='${L.id}';render()"><div class="muted">${esc(L.name)}</div><h2 style="margin:4px 0;display:flex;align-items:center;gap:8px">${crest(st[i].t,32)}${i+1}º · ${st[i].pts} puntos</h2><div class="muted">${st[i].pg} ganados · ${st[i].pp} perdidos · sets ${st[i].sf}-${st[i].sc}</div></div>`});
+    if(!fed)h+=`<div class="card click" onclick="go('leagues');selLeague='${L.id}';render()"><div class="muted">${esc(L.name)}</div><h2 style="margin:4px 0;display:flex;align-items:center;gap:8px">${crest(st[i].t,32)}${i+1}º · ${st[i].pts} puntos</h2><div class="muted">${st[i].pg} ganados · ${st[i].pp} perdidos · sets ${st[i].sf}-${st[i].sc}</div></div>`});
+  h+=rivalsCard();
   h+=`<div class="quick"><button onclick="go('board')"><span>✏️</span>Pizarra</button><button onclick="go('ex')"><span>🏋️</span>Ejercicios</button><button onclick="go('stats')"><span>📊</span>Estadísticas</button><button onclick="go('leagues')"><span>🏆</span>Ligas</button></div>`;
   h+=injHomeCard()+loadHomeCard()+birthdaysCard();
-  h+=`<div class="kpis" style="margin-bottom:12px"><div class="kpi"><b>${db.players.length}</b><small>jugadoras</small></div><div class="kpi"><b>${teamAtt()}%</b><small>asistencia</small></div><div class="kpi click" onclick="go('money')"><b>${pend}</b><small>cuotas pendientes</small></div></div>`;
+  h+=`<div class="kpis" style="margin-bottom:12px"><div class="kpi"><b>${db.players.length}</b><small>${curTeam().gen==="Masculino"?"jugadores":"jugadoras"}</small></div><div class="kpi"><b>${teamAtt()}%</b><small>asistencia</small></div><div class="kpi click" onclick="go('money')"><b>${pend}</b><small>cuotas pendientes</small></div></div>`;
   const recent=[...db.notes].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,2);
   if(recent.length)h+=`<div class="card"><div class="row" style="justify-content:space-between"><h3 style="margin:0">Últimas notas</h3><button class="btn sec small" onclick="go('notes')">Ver todas</button></div>${recent.map(n=>`<div style="margin-top:10px"><b>${esc(n.title||"Nota")}</b> <span class="muted">${fmtDate(n.date)}</span><div class="muted note">${esc(n.text.slice(0,140))}${n.text.length>140?"…":""}</div></div>`).join("")}</div>`;
   if(!sync.url)h+=syncHint();
