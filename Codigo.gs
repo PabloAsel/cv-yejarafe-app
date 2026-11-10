@@ -1,5 +1,5 @@
 /**
- * CV Yejarafe · Conexión entre la app y esta hoja de Google. (versión 3)
+ * CV Yejarafe · Conexión entre la app y esta hoja de Google. (versión 4)
  *
  * Cómo instalarlo (una sola vez, 3 minutos):
  *  1. En la hoja: menú Extensiones › Apps Script.
@@ -37,6 +37,7 @@ function doGet(e) {
     const players = db.players.filter(x => (x.tm || t0) === (s.tm || t0)).map(x => ({ id: x.id, name: x.name, number: x.number || '' }));
     return json({ ok: true, team: db.team, session: ses, players: players });
   }
+  if (p.a === 'agenda') return json(agenda(p.tm));
   const k = key();
   if (k && p.k !== k) return json({ ok: false, error: 'clave' });
   return json({ ok: true, db: readDb() });
@@ -92,6 +93,34 @@ function doPost(e) {
   } finally {
     lock.releaseLock();
   }
+}
+
+// Versión 4: agenda pública de un equipo. Solo fechas, lugares, resultados y clasificación; ningún nombre ni dato de jugadores.
+function agenda(tm) {
+  const db = readDb();
+  if (!db) return { ok: false, error: 'sin datos' };
+  const teams = db.teams || [];
+  const t0 = (teams[0] && teams[0].id) || 't0';
+  const t = teams.find(x => x.id === tm) || teams[0] || { id: t0 };
+  const from = new Date(Date.now() - 120 * 864e5).toISOString().slice(0, 10);
+  const sessions = (db.sessions || []).filter(s => (s.tm || t0) === t.id && s.date >= from).map(s => {
+    const o = { id: s.id, type: s.type, date: s.date, time: s.time || '', title: s.title || '', place: s.place || '' };
+    if (s.type === 'partido' && s.live && (s.live.won || s.live.lost)) o.res = { won: s.live.won || 0, lost: s.live.lost || 0 };
+    return o;
+  });
+  const name = t.name || [t.cat, (t.gen || '').toLowerCase(), t.sub].filter(Boolean).join(' ') || '';
+  const out = { ok: true, team: db.team, name: name, sessions: sessions };
+  const L = (db.leagues || []).find(l => (l.teams || []).some(x => t.fed ? x.id === t.fed : x.mine));
+  if (L) {
+    const me = L.teams.find(x => t.fed ? x.id === t.fed : x.mine);
+    out.fed = me.id;
+    out.league = {
+      id: L.id, name: L.name, official: L.official || [],
+      teams: L.teams.map(x => ({ id: x.id, name: x.name, logo: /^https?:/.test(x.logo || '') ? x.logo : '' })),
+      matches: (L.matches || []).map(m => ({ id: m.id, home: m.home, away: m.away, date: m.date || '', time: m.time || '', venue: m.venue || '', j: m.j || 0, sets: m.sets || [], hs: m.hs, as: m.as, postponed: !!m.postponed }))
+    };
+  }
+  return out;
 }
 
 function json(o) {
