@@ -388,6 +388,7 @@ dialog[open]{animation:cardIn .2s ease}
 .mu-vs{align-self:center;display:flex;flex-direction:column;align-items:center;gap:6px;margin-top:-18px}.mu-vs::before,.mu-vs::after{content:"";width:1px;height:16px;background:var(--line)}.mu-vs i{font-family:var(--disp);font-weight:800;font-size:1.05rem;color:var(--muted);letter-spacing:.04em}
 .mu-meta{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:6px 14px;font-size:.84rem;color:var(--muted);border-top:1px solid var(--line);padding-top:10px}
 .rivtbl th:last-child,.rivtbl td:last-child{text-align:right;white-space:nowrap}
+.rivtbl{table-layout:auto;border-collapse:collapse}.rivtbl td.rivc{text-align:left;width:100%;max-width:0}.rivn{min-width:0}.rivname{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.rivn .pill{flex:none}.rivn svg,.rivn img{flex:none}.rivtbl td,.rivtbl th{white-space:nowrap}.card:has(>.rivtbl){overflow:hidden}
 </style>
 </head>
 <body>
@@ -485,9 +486,9 @@ function teamOverview(){const t=curTeam();const TL=teamLeague();const n=db.playe
 function rivalsCard(){const TL=teamLeague();if(!TL)return "";const {L,t}=TL;const st=standings(L);if(st.length<2)return "";
   const nx=L.matches.filter(m=>(m.home===t.id||m.away===t.id)&&!setsOf(m)&&!m.postponed&&m.date>=today()).sort((a,b)=>(a.date+(a.time||"")).localeCompare(b.date+(b.time||"")))[0];const nid=nx?(nx.home===t.id?nx.away:nx.home):null;
   const h2h=id=>{const ms=L.matches.filter(m=>setsOf(m)&&((m.home===t.id&&m.away===id)||(m.away===t.id&&m.home===id)));return ms.map(m=>{const r=setsOf(m);const mine=m.home===t.id?r.h:r.a,th=m.home===t.id?r.a:r.h;return `<span class="pill ${mine>th?"ok":"bad"}">${mine}-${th}</span>`}).join(" ")};
-  return `<div class="card"><h3 style="margin-top:0">🏆 Clasificación y rivales</h3><table class="tbl rivtbl" style="width:100%"><tr><th></th><th style="text-align:left">Equipo</th><th>Pts</th><th>G-P</th><th title="Vuestros resultados contra ese equipo">Contra él</th></tr>
-   ${st.map((r,i)=>`<tr class="${r.t.id===t.id?"me":"click"}" ${r.t.id===t.id?"":`onclick="tab='leagues';selLeague='${L.id}';selTeam='${r.t.id}';render();scrollTo(0,0)"`}><td>${i+1}</td><td style="text-align:left"><span class="rivn">${crest(r.t,20)}<span>${esc(clubCase(r.t.name))}${r.t.id===nid?` <span class="pill warn">próximo</span>`:""}</span></span></td><td><b>${r.pts}</b></td><td>${r.pg}-${r.pp}</td><td>${r.t.id===t.id?"":h2h(r.t.id)}</td></tr>`).join("")}</table>
-   <p class="muted" style="margin-bottom:0">Toca un rival para ver su plantilla y sus partidos. “Contra él” son vuestros resultados frente a ese rival esta temporada.</p></div>`}
+  return `<div class="card"><h3 style="margin-top:0">🏆 Clasificación y rivales</h3><table class="tbl rivtbl" style="width:100%"><tr><th></th><th style="text-align:left">Equipo</th><th>Pts</th><th>G-P</th><th title="Vuestros resultados contra ese equipo">Duelos</th></tr>
+   ${st.map((r,i)=>`<tr class="${r.t.id===t.id?"me":"click"}" ${r.t.id===t.id?"":`onclick="tab='leagues';selLeague='${L.id}';selTeam='${r.t.id}';render();scrollTo(0,0)"`}><td>${i+1}</td><td class="rivc"><span class="rivn">${crest(r.t,20)}<span class="rivname">${esc(clubCase(r.t.name))}</span>${r.t.id===nid?`<span class="pill warn">próximo</span>`:""}</span></td><td><b>${r.pts}</b></td><td>${r.pg}-${r.pp}</td><td>${r.t.id===t.id?"":h2h(r.t.id)}</td></tr>`).join("")}</table>
+   <p class="muted" style="margin-bottom:0">Toca un rival para ver su plantilla y sus partidos. “Duelos” son vuestros resultados contra ese rival esta temporada.</p></div>`}
 function teamName(t,short){if(!t)return "";const g=short?({Femenino:"fem.",Masculino:"masc.",Mixto:"mixto"}[t.gen]||""):(t.gen||"").toLowerCase();return t.name||[t.cat,g,t.sub].filter(Boolean).join(" ")||"Equipo principal"}
 function teamCount(t,k){return (raw()[k]||[]).filter(x=>tmOf(x)===t.id).length}
 function switchTeam(id){if(id===curT)return;flush();curT=id;VW={};try{localStorage.setItem(TKEY,id)}catch(e){}selSession=null;selPlayer=null;selSlot=null;const d=$("#dlg");if(d.open){d.onclose=null;d.close()}go("home");toast("Equipo: "+teamName(curTeam()))}
