@@ -1,5 +1,5 @@
 /**
- * CV Yejarafe · Conexión entre la app y esta hoja de Google. (versión 4)
+ * CV Yejarafe · Conexión entre la app y esta hoja de Google. (versión 5)
  *
  * Cómo instalarlo (una sola vez, 3 minutos):
  *  1. En la hoja: menú Extensiones › Apps Script.
@@ -23,6 +23,9 @@ const CHUNK = 45000; // caracteres por celda (el límite de Sheets es 50.000)
 // Versión 2: los datos completos solo se leen con la clave del equipo (la pone la app de los entrenadores).
 // Las jugadoras y las familias solo reciben lo justo: nombres para confirmar y el marcador.
 function key() { return PropertiesService.getScriptProperties().getProperty('KEY') || ''; }
+// Versión 5: clave de solo lectura (delegados y directivos) y calendario para suscribirse desde el móvil.
+function roKey() { return PropertiesService.getScriptProperties().getProperty('KEY_RO') || ''; }
+const TZ = 'Atlantic/Canary'; // zona horaria de los entrenos y partidos
 
 function doGet(e) {
   const p = (e && e.parameter) || {};
@@ -38,8 +41,13 @@ function doGet(e) {
     return json({ ok: true, team: db.team, session: ses, players: players });
   }
   if (p.a === 'agenda') return json(agenda(p.tm));
+  if (p.a === 'ics') return ContentService.createTextOutput(ics(p.tm)).setMimeType(ContentService.MimeType.ICAL);
   const k = key();
-  if (k && p.k !== k) return json({ ok: false, error: 'clave' });
+  if (k && p.k !== k) {
+    const ro = roKey();
+    if (ro && p.k === ro) return json({ ok: true, db: readDb(), ro: true });
+    return json({ ok: false, error: 'clave' });
+  }
   return json({ ok: true, db: readDb() });
 }
 
@@ -50,7 +58,8 @@ function doPost(e) {
   try {
     if (body.a === 'save') {
       const k = key();
-      if (k && body.k !== k) return json({ ok: false, error: 'clave' });
+      if (k && body.k !== k) return json({ ok: false, error: (roKey() && body.k === roKey()) ? 'lectura' : 'clave' });
+      if (body.db && typeof body.db.rok === 'string' && body.db.rok !== roKey()) PropertiesService.getScriptProperties().setProperty('KEY_RO', body.db.rok);
       if (!k && body.k) PropertiesService.getScriptProperties().setProperty('KEY', String(body.k));
       const cur = readDb();
       // Si otro móvil guardó después de la última vez que este móvil leyó, devolvemos los datos actuales para combinarlos.
@@ -121,6 +130,31 @@ function agenda(tm) {
     };
   }
   return out;
+}
+
+function ics(tm) {
+  const a = agenda(tm);
+  const esc = t => String(t || '').replace(/\\/g, '\\\\').replace(/([,;])/g, '\\$1').replace(/\r?\n/g, '\\n');
+  const utc = d => Utilities.formatDate(d, 'UTC', "yyyyMMdd'T'HHmmss'Z'");
+  const from = new Date(Date.now() - 30 * 864e5).toISOString().slice(0, 10);
+  const L = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//CV Yejarafe//App//ES', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH',
+    'X-WR-CALNAME:' + esc((a.team || 'Equipo') + (a.name ? ' · ' + a.name : '')), 'X-WR-TIMEZONE:' + TZ, 'REFRESH-INTERVAL;VALUE=DURATION:PT3H', 'X-PUBLISHED-TTL:PT3H'];
+  (a.sessions || []).filter(s => s.date >= from).forEach(s => {
+    const title = (s.type === 'partido' ? '🏐 Partido' + (s.title ? ' vs ' + s.title : '') : '🏐 Entreno' + (s.title ? ' · ' + s.title : ''));
+    L.push('BEGIN:VEVENT', 'UID:' + s.id + '@app-voleibol', 'DTSTAMP:' + utc(new Date()));
+    if (/^\d\d:\d\d$/.test(s.time)) {
+      const d = Utilities.parseDate(s.date + ' ' + s.time, TZ, 'yyyy-MM-dd HH:mm');
+      L.push('DTSTART:' + utc(d), 'DTEND:' + utc(new Date(d.getTime() + 2 * 3600e3)));
+    } else {
+      const n = new Date(s.date + 'T12:00:00Z'); n.setUTCDate(n.getUTCDate() + 1);
+      L.push('DTSTART;VALUE=DATE:' + s.date.replace(/-/g, ''), 'DTEND;VALUE=DATE:' + n.toISOString().slice(0, 10).replace(/-/g, ''));
+    }
+    L.push('SUMMARY:' + esc(title));
+    if (s.place) L.push('LOCATION:' + esc(s.place));
+    L.push('BEGIN:VALARM', 'ACTION:DISPLAY', 'DESCRIPTION:' + esc(title), 'TRIGGER:-PT2H', 'END:VALARM', 'END:VEVENT');
+  });
+  L.push('END:VCALENDAR');
+  return L.join('\r\n');
 }
 
 function json(o) {
