@@ -363,6 +363,26 @@ nav.tabs button.on{color:var(--brand)}
 .teamsheet h4{margin:14px 0 4px;text-transform:uppercase;font-size:.78rem;letter-spacing:.06em;color:var(--muted)}.teamsheet li.cur{background:color-mix(in srgb,var(--brand) 9%,transparent);border-radius:12px}
 .overview{border-top:4px solid var(--brand)}.ovcat{font-size:.72rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--brand)}.ovk{margin-top:12px}
 .rivtbl td,.rivtbl th{padding:7px 4px}.rivtbl tr.me{background:color-mix(in srgb,var(--brand) 10%,transparent);font-weight:700}.rivn{display:flex;align-items:center;gap:6px}.rivtbl .pill{font-size:.7rem;padding:1px 6px}
+.overview{padding:0;overflow:hidden}.ovhead{all:unset;box-sizing:border-box;display:flex;align-items:center;gap:12px;width:100%;padding:14px 16px;cursor:pointer}.ovhead .grow{display:flex;flex-direction:column;min-width:0}
+.ovname{font-family:var(--disp);font-style:italic;font-weight:800;text-transform:uppercase;font-size:1.35rem;line-height:1.05;margin:2px 0}.ovsub{color:var(--muted);font-size:.82rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ovchg{font-size:.78rem;font-weight:700;color:var(--brand);background:color-mix(in srgb,var(--brand) 10%,transparent);padding:7px 10px;border-radius:999px;white-space:nowrap}
+.ovstats{display:grid;grid-template-columns:repeat(3,1fr);border-top:1px solid var(--line)}.ovstat{padding:12px 6px;text-align:center;cursor:pointer;border-right:1px solid var(--line);border-bottom:1px solid var(--line)}.ovstat:nth-child(3n){border-right:0}.ovstat:nth-last-child(-n+3){border-bottom:0}
+.ovstat b{display:block;font-family:var(--disp);font-style:italic;font-weight:800;font-size:1.6rem;line-height:1;color:var(--brand)}.ovstat small{color:var(--muted);font-size:.72rem}.ovstat.warn b{color:var(--warn)}
+.addcard>summary{color:var(--brand)}details.card>summary{cursor:pointer;min-height:28px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;list-style:none}details.card>summary::-webkit-details-marker{display:none}details.card>summary::after{content:"›";margin-left:auto;font-size:1.3rem;line-height:1;color:var(--muted);transform:rotate(90deg);transition:transform .15s}details.card[open]>summary::after{transform:rotate(-90deg)}
+.tsel{display:inline-block;line-height:1.35;padding:0 8px}
+@media(max-width:520px){.rivtbl th:nth-child(4),.rivtbl td:nth-child(4){display:none}}
+:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+.ringt{font-family:var(--disp);font-style:italic;font-weight:800;font-size:1.25rem;fill:var(--text)}.attrow{display:flex;align-items:center;gap:14px;margin:10px 0 6px}
+.axl{font-size:9px;fill:var(--muted)}.axv{font-size:9.5px;font-weight:700;fill:var(--text)}.abar{cursor:pointer}.abar:hover .abv{filter:brightness(1.15)}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:.76rem;color:var(--muted);align-items:center}.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}.legend b{color:var(--text)}
+.form{display:flex;gap:4px;margin-top:6px}.form i{font-style:normal;font-size:.66rem;font-weight:800;width:18px;height:18px;border-radius:6px;display:grid;place-items:center;color:#fff}.form i.w{background:var(--ok)}.form i.l{background:var(--bad)}
+.card.click,.quick button,.ovstat,.list li.click{transition:transform .12s ease,box-shadow .15s ease,background .15s ease}.card.click:active,.quick button:active{transform:scale(.985)}.ovstat:active,.list li.click:active{background:color-mix(in srgb,var(--brand) 7%,transparent)}
+@media(hover:hover){.card.click:hover{transform:translateY(-2px);box-shadow:0 2px 4px rgba(16,24,40,.06),0 12px 26px rgba(16,24,40,.10)}.ovstat:hover{background:color-mix(in srgb,var(--brand) 5%,transparent)}}
+@keyframes cardIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}@keyframes ringIn{from{stroke-dasharray:0 var(--c)}}@keyframes barIn{from{transform:scaleY(0)}}
+#app.enter>*{animation:cardIn .28s ease both}#app.enter>*:nth-child(2){animation-delay:.04s}#app.enter>*:nth-child(3){animation-delay:.08s}#app.enter>*:nth-child(4){animation-delay:.12s}#app.enter>*:nth-child(n+5){animation-delay:.16s}
+#app.enter .ringv{animation:ringIn .7s ease .15s both}#app.enter .abv{transform-box:fill-box;transform-origin:bottom;animation:barIn .45s ease .2s both}
+dialog[open]{animation:cardIn .2s ease}
 </style>
 </head>
 <body>
@@ -432,11 +452,31 @@ function autoSplit(){if(root.teams.length!==1||root.noSplit)return false;const p
     g.ps.forEach(p=>p.tm=t.id)});
   VW={};return true}
 const clubCase=n=>titleCase(n).replace(/\b(Cv|Cd|Ud|Ad|Ies|Cdv)\b/g,m=>m.toUpperCase());
+/* ---------- GRÁFICOS ---------- */
+function ringSvg(pc,size){const r=(size-10)/2,c=2*Math.PI*r,v=Math.max(0,Math.min(100,pc));return `<svg class="ring" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" role="img" aria-label="${v}%"><circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="var(--line)" stroke-width="8"/><circle class="ringv" cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="var(--brand)" stroke-width="8" stroke-linecap="round" stroke-dasharray="${(c*v/100).toFixed(1)} ${c.toFixed(1)}" transform="rotate(-90 ${size/2} ${size/2})" style="--c:${c.toFixed(1)}"/><text x="50%" y="50%" text-anchor="middle" dominant-baseline="central" class="ringt">${v}%</text></svg>`}
+function attHistory(n){const tot=db.players.length||1;return db.sessions.filter(s=>s.date<=today()&&Object.keys(s.att).length).sort((a,b)=>(a.date+(a.time||"")).localeCompare(b.date+(b.time||""))).slice(-n).map(s=>{const ok=Object.values(s.att).filter(v=>v==="P"||v==="T").length;return {s,ok,pc:Math.round(ok*100/tot)}})}
+function attCard(){const H=attHistory(8);if(H.length<2)return "";const W=260,Hh=84,bw=Math.min(22,(W-(H.length-1)*6)/H.length),gap=(W-bw*H.length)/(H.length-1||1);
+  const bars=H.map((x,i)=>{const h=Math.max(3,x.pc*Hh/100),X=i*(bw+gap);return `<g class="abar" onclick="tab='cal';openSession('${x.s.id}')"><title>${sessLabel(x.s).replace(/^\S+\s/,"")}: ${x.ok} de ${db.players.length} (${x.pc}%)</title><rect x="${X.toFixed(1)}" y="0" width="${bw.toFixed(1)}" height="${Hh+16}" fill="transparent"/><rect class="abv" x="${X.toFixed(1)}" y="${(Hh-h).toFixed(1)}" width="${bw.toFixed(1)}" height="${h.toFixed(1)}" rx="4" fill="var(--brand)" opacity="${x.s.type==="partido"?1:.55}"/><text x="${(X+bw/2).toFixed(1)}" y="${Hh+13}" text-anchor="middle" class="axl">${+x.s.date.slice(8)}</text></g>`}).join("");
+  const last=H[H.length-1],prev=H[H.length-2],d=last.pc-prev.pc;
+  return `<div class="card chartcard"><div class="row" style="justify-content:space-between;align-items:flex-start"><h3 style="margin:0">📈 Asistencia</h3><span class="muted" style="font-size:.78rem">últimas ${H.length} sesiones</span></div>
+   <div class="attrow">${ringSvg(teamAtt(),92)}<div class="grow"><svg viewBox="0 -4 ${W} ${Hh+22}" width="100%" role="img" aria-label="Asistencia por sesión"><line x1="0" x2="${W}" y1="${Hh}" y2="${Hh}" stroke="var(--line)"/>${bars}</svg></div></div>
+   <div class="legend"><span><i style="background:var(--brand)"></i>Partido</span><span><i style="background:var(--brand);opacity:.55"></i>Entreno</span><span class="grow"></span><span>Última: <b>${last.pc}%</b> ${d?`(${d>0?"▲ +":"▼ "}${d})`:""}</span></div></div>`}
+function formStrip(TL){if(!TL)return "";const {L,t}=TL;const ms=L.matches.filter(m=>setsOf(m)&&(m.home===t.id||m.away===t.id)).sort((a,b)=>(a.date||"").localeCompare(b.date||"")).slice(-5);if(!ms.length)return "";
+  return `<span class="form" aria-label="Últimos resultados">${ms.map(m=>{const r=setsOf(m);const mine=m.home===t.id?r.h:r.a,th=m.home===t.id?r.a:r.h;const w=mine>th;const rv=clubCase(tname(L,m.home===t.id?m.away:m.home));return `<i class="${w?"w":"l"}" title="${esc(rv)} ${mine}-${th}">${w?"G":"P"}</i>`}).join("")}</span>`}
+function matchTrendCard(){const ms=db.sessions.filter(s=>s.type==="partido"&&evs(s).length).sort((a,b)=>a.date.localeCompare(b.date)).slice(-10);if(ms.length<2)return "";
+  const D=ms.map(s=>{const sc=setScores(s);const us=sc.sets.reduce((a,x)=>a+x.us,0),th=sc.sets.reduce((a,x)=>a+x.them,0);return {s,sc,d:us-th}});const mx=Math.max(5,...D.map(x=>Math.abs(x.d)));
+  const W=300,H=120,mid=H/2,bw=Math.min(26,(W-(D.length-1)*8)/D.length),gap=D.length>1?(W-bw*D.length)/(D.length-1):0;
+  return `<div class="card chartcard"><h2>📉 Evolución por partido</h2><p class="muted" style="margin-top:0">Diferencia de puntos en cada partido (los nuestros menos los del rival).</p>
+   <svg viewBox="0 -14 ${W} ${H+56}" width="100%" role="img" aria-label="Diferencia de puntos por partido"><line x1="0" x2="${W}" y1="${mid}" y2="${mid}" stroke="var(--muted)" stroke-opacity=".5"/>
+   ${D.map((x,i)=>{const h=Math.max(3,Math.abs(x.d)*(mid-6)/mx),X=i*(bw+gap),up=x.d>=0,win=x.sc.won>x.sc.lost;return `<g class="abar" onclick="tab='cal';openSession('${x.s.id}')"><title>${esc(x.s.title||"Rival")} · ${fmtDate(x.s.date)}: ${x.sc.won}-${x.sc.lost} en sets, ${x.d>0?"+":""}${x.d} puntos</title><rect x="${X.toFixed(1)}" y="-14" width="${bw.toFixed(1)}" height="${H+56}" fill="transparent"/><rect class="abv" x="${X.toFixed(1)}" y="${(up?mid-h:mid).toFixed(1)}" width="${bw.toFixed(1)}" height="${h.toFixed(1)}" rx="4" fill="var(--${up?"ok":"bad"})"/><text x="${(X+bw/2).toFixed(1)}" y="${(up?mid-h-4:mid+h+11).toFixed(1)}" text-anchor="middle" class="axv">${x.d>0?"+":""}${x.d}</text><text x="${(X+bw/2).toFixed(1)}" y="${H+24}" text-anchor="middle" class="axl">${x.sc.won}-${x.sc.lost}</text><text x="${(X+bw/2).toFixed(1)}" y="${H+37}" text-anchor="middle" class="axl">${win?"G":x.sc.won<x.sc.lost?"P":"·"}</text></g>`}).join("")}</svg>
+   <div class="legend"><span><i style="background:var(--ok)"></i>Más puntos que el rival</span><span><i style="background:var(--bad)"></i>Menos puntos</span></div><p class="muted" style="margin-bottom:0">Debajo de cada barra: resultado en sets y si se ganó (G) o perdió (P). Toca una barra para abrir el partido.</p></div>`}
 function teamLeague(){const fed=curTeam().fed;if(!fed)return null;for(const L of (db.leagues||[])){const t=L.teams.find(x=>x.id===fed);if(t)return {L,t}}return null}
 function teamOverview(){const t=curTeam();const TL=teamLeague();const n=db.players.length;const who=t.gen==="Masculino"?"jugadores":"jugadoras";
-  let k="";if(TL){const st=standings(TL.L);const i=st.findIndex(r=>r.t.id===TL.t.id);const r=st[i];if(r)k=`<div class="kpis ovk"><div class="kpi"><b>${i+1}º</b><small>de ${st.length}</small></div><div class="kpi"><b>${r.pts}</b><small>puntos</small></div><div class="kpi"><b>${r.pg}-${r.pp}</b><small>G-P</small></div></div>`}
-  return `<div class="card overview"><div class="row" style="align-items:center;gap:12px">${TL?crest(TL.t,52):`<img src="crest.png" width="52" height="52" alt="">`}<div class="grow"><div class="ovcat">${esc(t.cat||"Equipo")}${t.gen?" · "+esc(t.gen):""}${t.sub?" · "+esc(t.sub):""}</div><h2 style="margin:2px 0">${esc(TL?clubCase(TL.t.name):teamName(t))}</h2><div class="muted">${TL?esc(TL.L.name):"Sin liga asignada"} · ${n} ${who}</div></div><button class="btn sec small" onclick="openTeams()">Cambiar</button></div>${k}
-   ${TL?"":`<p class="muted" style="margin-bottom:0">Toca “Cambiar” y el lápiz de este equipo para elegir su categoría y su equipo de la federación: así verás aquí su liga y sus rivales.</p>`}</div>`}
+  const pend=db.fees.reduce((x,f)=>x+db.players.filter(p=>!f.paid?.[p.id]).length,0);
+  let k="";if(TL){const st=standings(TL.L);const i=st.findIndex(r=>r.t.id===TL.t.id);const r=st[i];if(r)k=`<div class="ovstat" onclick="go('leagues');selLeague='${TL.L.id}';render()"><b>${i+1}º</b><small>de ${st.length}</small></div><div class="ovstat"><b>${r.pts}</b><small>puntos</small></div><div class="ovstat"><b>${r.pg}-${r.pp}</b><small>G-P</small></div>`}
+  return `<div class="card overview"><button class="ovhead" onclick="openTeams()" aria-label="Cambiar de equipo">${TL?crest(TL.t,48):`<img src="crest.png" width="48" height="48" alt="">`}<span class="grow"><span class="ovcat">${esc(t.cat||"Equipo")}${t.gen?" · "+esc(t.gen):""}${t.sub?" · "+esc(t.sub):""}</span><span class="ovname">${esc(TL?clubCase(TL.t.name):teamName(t))}</span><span class="ovsub">${TL?esc(TL.L.name.replace(/^Liga\s+/i,"")):"Sin liga asignada"}</span>${formStrip(TL)}</span><span class="ovchg">Cambiar ▾</span></button>
+   <div class="ovstats">${k}<div class="ovstat" onclick="go('roster')"><b>${n}</b><small>${who}</small></div><div class="ovstat" onclick="go('cal')"><b>${db.sessions.length?teamAtt()+"%":"–"}</b><small>asistencia</small></div><div class="ovstat ${pend?"warn":""}" onclick="go('money')"><b>${pend}</b><small>cuotas pend.</small></div></div>
+   ${TL||!t.cat&&root.teams.length===1?"":`<p class="muted" style="margin-bottom:0">Toca “Cambiar” y el lápiz de este equipo para elegir su equipo de la federación: así verás aquí su liga y sus rivales.</p>`}</div>`}
 function rivalsCard(){const TL=teamLeague();if(!TL)return "";const {L,t}=TL;const st=standings(L);if(st.length<2)return "";
   const nx=L.matches.filter(m=>(m.home===t.id||m.away===t.id)&&!setsOf(m)&&!m.postponed&&m.date>=today()).sort((a,b)=>(a.date+(a.time||"")).localeCompare(b.date+(b.time||"")))[0];const nid=nx?(nx.home===t.id?nx.away:nx.home):null;
   const h2h=id=>{const ms=L.matches.filter(m=>setsOf(m)&&((m.home===t.id&&m.away===id)||(m.away===t.id&&m.home===id)));return ms.map(m=>{const r=setsOf(m);const mine=m.home===t.id?r.h:r.a,th=m.home===t.id?r.a:r.h;return `<span class="pill ${mine>th?"ok":"bad"}">${mine}-${th}</span>`}).join(" ")};
@@ -492,7 +532,7 @@ const present=(s,pid)=>s.att[pid]==="P"||s.att[pid]==="T";
 const evs=s=>(s.ev=s.ev||[]);
 function keepScroll(f){const y=scrollY;const open=[...document.querySelectorAll("#app details")].map(d=>d.open);f();render();document.querySelectorAll("#app details").forEach((d,i)=>{if(open[i]!==undefined)d.open=open[i]});scrollTo(0,y)}
 
-function go(t){if(t==="board"){t="rot";rotTab="board"}if(t==="ex"&&tab==="ex")selExercise=null;tab=t;selSession=null;selSlot=null;selPlayer=null;selLeague=null;selTeam=null;render();scrollTo(0,0)}
+function go(t){if(t==="board"){t="rot";rotTab="board"}if(t==="ex"&&tab==="ex")selExercise=null;tab=t;selSession=null;selSlot=null;selPlayer=null;selLeague=null;selTeam=null;render();scrollTo(0,0);const A=$("#app");A.classList.remove("enter");void A.offsetWidth;if(tab!=="rot")A.classList.add("enter")}
 function render(){
   if(autoSplit()){save();setTimeout(()=>toast("He separado la plantilla en "+root.teams.length+" equipos. Toca el nombre de arriba para cambiar."),400)}
   const myT=(db.leagues||[]).map(L=>L.teams.find(t=>t.mine)).find(t=>t&&t.logo);const TT={home:"Inicio",cal:"Calendario",roster:"Plantilla",stats:"Estadísticas",more:"Más",videos:"Vídeos",rot:"Táctica",ex:"Ejercicios",leagues:"Ligas",board:"Pizarra táctica",notes:"Notas",money:"Cuotas y gastos",settings:"Ajustes"};
@@ -526,10 +566,9 @@ function vHome(){
   (db.leagues||[]).forEach(L=>{const st=standings(L);const fed=curTeam().fed;const i=st.findIndex(r=>fed?r.t.id===fed:r.t.mine);if(i<0)return;const me=st[i].t;const nx=L.matches.filter(m=>(m.home===me.id||m.away===me.id)&&!setsOf(m)&&!m.postponed&&m.date>=today()).sort((a,b)=>(a.date+(a.time||'')).localeCompare(b.date+(b.time||'')))[0];
     if(nx){const rv=L.teams.find(t=>t.id===(nx.home===me.id?nx.away:nx.home))||{name:'?'};h+=`<div class="card click" onclick="go('leagues');selLeague='${L.id}';selTeam='${me.id}';render()"><div class="muted">Próximo partido de liga · ${nx.j?'J'+nx.j+' · ':''}${fmtDate(nx.date)}${nx.time&&nx.time!=='00:00'?' '+nx.time:''}</div><div class="vs"><div>${crest(L.teams.find(t=>t.id===nx.home),48)}<b>${esc(tname(L,nx.home))}</b></div><span>VS</span><div>${crest(L.teams.find(t=>t.id===nx.away),48)}<b>${esc(tname(L,nx.away))}</b></div></div>${nx.venue?`<div class="muted">📍 ${esc(nx.venue)} · ${nx.home===me.id?'en casa':'fuera'}</div>`:''}</div>`}
     if(!fed)h+=`<div class="card click" onclick="go('leagues');selLeague='${L.id}';render()"><div class="muted">${esc(L.name)}</div><h2 style="margin:4px 0;display:flex;align-items:center;gap:8px">${crest(st[i].t,32)}${i+1}º · ${st[i].pts} puntos</h2><div class="muted">${st[i].pg} ganados · ${st[i].pp} perdidos · sets ${st[i].sf}-${st[i].sc}</div></div>`});
-  h+=rivalsCard();
+  h+=rivalsCard();h+=attCard();
   h+=`<div class="quick"><button onclick="go('board')"><span>✏️</span>Pizarra</button><button onclick="go('ex')"><span>🏋️</span>Ejercicios</button><button onclick="go('stats')"><span>📊</span>Estadísticas</button><button onclick="go('leagues')"><span>🏆</span>Ligas</button></div>`;
   h+=injHomeCard()+loadHomeCard()+birthdaysCard();
-  h+=`<div class="kpis" style="margin-bottom:12px"><div class="kpi"><b>${db.players.length}</b><small>${curTeam().gen==="Masculino"?"jugadores":"jugadoras"}</small></div><div class="kpi"><b>${teamAtt()}%</b><small>asistencia</small></div><div class="kpi click" onclick="go('money')"><b>${pend}</b><small>cuotas pendientes</small></div></div>`;
   const recent=[...db.notes].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,2);
   if(recent.length)h+=`<div class="card"><div class="row" style="justify-content:space-between"><h3 style="margin:0">Últimas notas</h3><button class="btn sec small" onclick="go('notes')">Ver todas</button></div>${recent.map(n=>`<div style="margin-top:10px"><b>${esc(n.title||"Nota")}</b> <span class="muted">${fmtDate(n.date)}</span><div class="muted note">${esc(n.text.slice(0,140))}${n.text.length>140?"…":""}</div></div>`).join("")}</div>`;
   if(!sync.url)h+=syncHint();
@@ -550,22 +589,22 @@ function pct(pid){let n=0,ok=0;db.sessions.forEach(s=>{const v=s.att[pid];if(v){
 function vRoster(){
   if(selPlayer)return vPlayer(player(selPlayer));
   const ps=sortedPlayers();
-  return `<div class="card"><h2>Añadir jugador/a</h2>
+  return `<details class="card addcard" ${ps.length?"":"open"}><summary><b>＋ Añadir jugador/a</b></summary>
   <form onsubmit="addPlayer(event)">
    <div class="row"><input name="number" type="number" inputmode="numeric" placeholder="Dorsal" style="width:90px"><input name="name" class="grow" placeholder="Nombre" required></div>
    <div class="row" style="margin-top:8px"><select name="pos" class="grow">${POS.map(p=>`<option>${p}</option>`).join("")}</select><input name="phone" class="grow" type="tel" placeholder="Teléfono (opcional)"></div>
    <details style="margin-top:8px"><summary class="muted">Datos físicos (opcional)</summary>${physFields({})}</details>
-   <div class="row" style="margin-top:10px"><button class="btn">Añadir</button></div></form></div>
+   <div class="row" style="margin-top:10px"><button class="btn">Añadir</button></div></form></details>
   ${fedTeams().length?`<div class="card"><div class="row"><div class="grow"><b>⬇️ Importar de la federación</b><div class="muted">Trae los nombres de tu ficha federativa en un toque.</div></div><button class="btn small" onclick="importFed()">Importar</button></div></div>`:""}
+  <div class="card"><h2>Plantilla (${ps.length})</h2>
+  ${ps.length?Object.keys(POSC).filter(k=>ps.some(p=>(POSC[p.pos]?p.pos:"Otro")===k)).map(k=>{const g=ps.filter(p=>(POSC[p.pos]?p.pos:"Otro")===k);return `<div class="pos-h" style="--pc:${pc(k)}">${POSN[k]} (${g.length})</div><ul class="list">${g.map(p=>`<li class="click" onclick="selPlayer='${p.id}';render();scrollTo(0,0)">${avatar(p)}
+    <div class="grow"><div><b>${esc(p.number?"#"+p.number+" ":"")}${esc(p.name)}</b>${injTag(p)}</div><div class="muted">${physLine(p)||esc(p.pos)} · ${pct(p.id)}% asist.</div></div><span>›</span></li>`).join("")}</ul>`}).join("")
+   :`<div class="empty">Todavía no hay nadie. Añade a tu equipo aquí arriba o impórtalo de la federación.</div>`}</div>
   <details class="card"><summary><b>Pegar lista de jugadores</b></summary>
   <p class="muted">Una persona por línea: dorsal, nombre y posición. Ejemplo:<br>7 Lucía García Receptor<br>12 Ana López Central</p>
   <textarea id="bulk" rows="6" placeholder="7 Lucía García Receptor"></textarea>
   <div class="row" style="margin-top:8px"><button class="btn" onclick="bulkAdd()">Añadir todos</button></div></details>
-  ${ps.length?teamSummary(ps):""}
-  <div class="card"><h2>Plantilla (${ps.length})</h2>
-  ${ps.length?Object.keys(POSC).filter(k=>ps.some(p=>(POSC[p.pos]?p.pos:"Otro")===k)).map(k=>{const g=ps.filter(p=>(POSC[p.pos]?p.pos:"Otro")===k);return `<div class="pos-h" style="--pc:${pc(k)}">${POSN[k]} (${g.length})</div><ul class="list">${g.map(p=>`<li class="click" onclick="selPlayer='${p.id}';render();scrollTo(0,0)">${avatar(p)}
-    <div class="grow"><div><b>${esc(p.number?"#"+p.number+" ":"")}${esc(p.name)}</b>${injTag(p)}</div><div class="muted">${physLine(p)||esc(p.pos)} · ${pct(p.id)}% asist.</div></div><span>›</span></li>`).join("")}</ul>`}).join("")
-   :`<div class="empty">Todavía no hay nadie. Añade a tu equipo arriba.</div>`}</div>`;
+  ${ps.length?teamSummary(ps):""}`;
 }
 function teamSummary(ps){const ages=ps.map(p=>age(p.birth)).filter(x=>x!=null);
   const byPos=Object.keys(POSC).map(k=>({k,g:ps.filter(p=>p.pos===k)})).filter(x=>x.g.length);
@@ -619,14 +658,14 @@ function vPlayer(p){
   return `<div class="row" style="margin-bottom:10px"><button class="btn sec small" onclick="selPlayer=null;render()">‹ Plantilla</button></div>
   <div class="card"><div class="row">${avatar(p,true)}<div class="grow"><h2 style="margin:0">${esc(p.number?"#"+p.number+" ":"")}${esc(p.name)}</h2><div style="margin-top:4px">${posTag(p.pos)}</div>${p.phone?`<div class="muted">${esc(p.phone)}</div>`:""}</div></div>
   <div class="row" style="margin-top:10px"><button class="btn sec small" onclick="editPlayer('${p.id}')">Editar</button><button class="btn small" onclick="sendReport('${p.id}')">💬 Mandarle su informe</button><label class="btn sec small" style="margin:0;color:var(--text)">📷 ${p.photo?"Cambiar foto":"Poner foto"}<input type="file" accept="image/*" hidden onchange="setPhoto('${p.id}',this)"></label>${p.photo?`<button class="btn danger small" onclick="player('${p.id}').photo='';save();render()">Quitar foto</button>`:""}${wa?`<a class="btn sec small" href="${wa}" target="_blank" rel="noopener">💬 WhatsApp</a>`:""}</div></div>
+  <div class="kpis" style="margin-bottom:12px"><div class="kpi"><b>${pct(p.id)}%</b><small>asistencia</small></div><div class="kpi"><b>${r.pts}</b><small>puntos (${r.pj} PJ)</small></div><div class="kpi"><b>${r.E}</b><small>errores</small></div>
+  <div class="kpi"><b>${r.rec??"–"}</b><small>recepción 0-3</small></div><div class="kpi"><b>${r.srv??"–"}</b><small>saque 0-3</small></div><div class="kpi"><b>${r.pj?(r.pts/r.pj).toFixed(1):"–"}</b><small>puntos/partido</small></div></div>
+  ${r.pts?`<div class="card"><h3>Cómo puntúa</h3><div class="bar" style="height:14px;display:flex">${["A","B","S"].map((t,i)=>r[t]?`<i style="width:${r[t]*100/r.pts}%;background:${["#1f6feb","#7c3aed","#16a34a"][i]}"></i>`:"").join("")}</div><div class="muted" style="margin-top:6px">Ataque ${r.A} · Bloqueo ${r.B} · Saque ${r.S}</div></div>`:""}
   ${injCard(p)}
   ${loadCard(p)}
   ${goalsCard(p)}
   ${physCard(p)}
   ${testsCard(p)}
-  <div class="kpis" style="margin-bottom:12px"><div class="kpi"><b>${pct(p.id)}%</b><small>asistencia</small></div><div class="kpi"><b>${r.pts}</b><small>puntos (${r.pj} PJ)</small></div><div class="kpi"><b>${r.E}</b><small>errores</small></div>
-  <div class="kpi"><b>${r.rec??"–"}</b><small>recepción 0-3</small></div><div class="kpi"><b>${r.srv??"–"}</b><small>saque 0-3</small></div><div class="kpi"><b>${r.pj?(r.pts/r.pj).toFixed(1):"–"}</b><small>puntos/partido</small></div></div>
-  ${r.pts?`<div class="card"><h3>Cómo puntúa</h3><div class="bar" style="height:14px;display:flex">${["A","B","S"].map((t,i)=>r[t]?`<i style="width:${r[t]*100/r.pts}%;background:${["#1f6feb","#7c3aed","#16a34a"][i]}"></i>`:"").join("")}</div><div class="muted" style="margin-top:6px">Ataque ${r.A} · Bloqueo ${r.B} · Saque ${r.S}</div></div>`:""}
   <div class="card"><h3>📝 Notas sobre ella</h3>
    <form onsubmit="addNote(event,'${p.id}')"><textarea name="text" rows="2" placeholder="Ej.: trabajar la recepción en zona 5, habló de su lesión…" required></textarea><div class="row" style="margin-top:6px"><button class="btn small">Guardar nota</button></div></form>
    ${notes.map(n=>`<div style="margin-top:10px;border-top:1px solid var(--line);padding-top:8px"><span class="muted">${fmtDate(n.date)}</span> <div class="note">${esc(n.text)}</div></div>`).join("")}</div>
@@ -645,15 +684,15 @@ function vCal(){
   const li=s=>{const c=Object.values(s.att).filter(v=>v==="P"||v==="T").length;const r=rsvpCount(s);const isUp=s.date>=today();
     return `<li class="click" onclick="openSession('${s.id}')"><div class="grow"><b>${sessLabel(s)}</b>${s.title||s.place?`<div class="muted">${esc([s.title,s.place].filter(Boolean).join(" · "))}</div>`:""}</div>
     ${isUp?`<span class="pill ok">✓ ${r.si}</span>`:`<span class="pill">${c}/${db.players.length}</span>`}<span>›</span></li>`};
-  return `${weekCard()}<div class="card"><h2>Nuevo entreno o partido</h2>
-  <form onsubmit="addSession(event)">
+  return `${weekCard()}<details class="card addcard" ${db.sessions.length?"":"open"}><summary><b>＋ Nuevo entreno o partido</b></summary>
+  <form onsubmit="addSession(event)" style="margin-top:10px">
    <div class="seg" id="segType"><button type="button" class="on" data-v="entreno" onclick="segPick(this)">Entreno</button><button type="button" data-v="partido" onclick="segPick(this)">Partido</button></div>
    <div class="row" style="margin-top:8px"><input name="date" type="date" value="${today()}" class="grow" style="width:auto"><input name="time" type="time" class="grow" style="width:auto"></div>
    <input name="title" placeholder="Rival o nota (opcional)" style="margin-top:8px"><input name="place" placeholder="Lugar (opcional)" style="margin-top:8px">
-   <div class="row" style="margin-top:10px"><button class="btn">Crear</button></div></form></div>
+   <div class="row" style="margin-top:10px"><button class="btn">Crear</button></div></form></details>
   <div class="card"><h2>Próximos</h2>${up.length?`<ul class="list">${up.map(li).join("")}</ul>`:`<div class="empty">Nada programado.</div>`}</div>
   <div class="card"><h2>Pasados</h2>${past.length?`<ul class="list">${past.map(li).join("")}</ul>`:`<div class="empty">Aún no hay sesiones pasadas.</div>`}</div>
-  ${ps.length&&db.sessions.length?`<div class="card"><h2>Asistencia por jugador/a</h2><ul class="list">${ps.map(p=>`<li><div class="grow"><div>${esc(p.name)}</div><div class="bar"><i style="width:${pct(p.id)}%"></i></div></div><b>${pct(p.id)}%</b></li>`).join("")}</ul></div>`:""}`;
+  ${ps.length&&db.sessions.length?`<details class="card"><summary><b>📊 Asistencia por jugador/a</b></summary><ul class="list" style="margin-top:8px">${ps.map(p=>`<li><div class="grow"><div>${esc(p.name)}</div><div class="bar"><i style="width:${pct(p.id)}%"></i></div></div><b>${pct(p.id)}%</b></li>`).join("")}</ul></details>`:""}`;
 }
 function segPick(b){b.parentNode.querySelectorAll("button").forEach(x=>x.classList.toggle("on",x===b))}
 function addSession(e){e.preventDefault();const f=e.target;const type=$("#segType .on").dataset.v;const s={id:uid(),date:f.date.value||today(),time:f.time.value,place:f.place.value.trim(),type,title:f.title.value.trim(),att:{},rsvp:{},ev:[],plan:[]};db.sessions.push(s);save();selSession=s.id;render();scrollTo(0,0)}
@@ -672,18 +711,17 @@ function vSession(s){
   return `<div class="row" style="margin-bottom:10px"><button class="btn sec small" onclick="selSession=null;render()">‹ Calendario</button></div>
   <div class="card"><h2>${sessLabel(s)}</h2>${s.title?`<div>${esc(s.title)}</div>`:""}${s.place?`<div class="muted">📍 ${esc(s.place)}</div>`:""}
   <div class="row" style="margin-top:10px"><button class="btn sec small" onclick="editSession('${s.id}')">Editar</button><a class="btn sec small" href="${gcalLink(s)}" target="_blank" rel="noopener">📅 A Google Calendar</a></div></div>
-  <details class="card" ${isUp?"open":""}><summary><b>📣 Convocatoria</b> <span class="pill ok">Van ${r.si}</span> <span class="pill bad">No ${r.no}</span> <span class="pill warn">Duda ${r.duda}</span></summary>
+  <details class="card" ${isUp&&!evs(s).length?"open":""}><summary><b>📣 Convocatoria</b> <span class="pill ok">Van ${r.si}</span> <span class="pill bad">No ${r.no}</span> <span class="pill warn">Duda ${r.duda}</span></summary>
    <div class="row" style="margin-top:10px"><a class="btn small" href="https://wa.me/?text=${encodeURIComponent(waText(s))}" target="_blank" rel="noopener">💬 Enviar por WhatsApp</a>${sync.url?`<button class="btn sec small" onclick="copyText(confirmLink(sess('${s.id}')))">🔗 Copiar enlace</button><button class="btn sec small" onclick="pull(true)">↻ Ver respuestas nuevas</button>`:""}</div>
    ${sync.url?"":`<p class="muted">Con la hoja de Google conectada (Más › Datos y Google), las jugadoras confirman solas desde el enlace. Mientras tanto, marca tú sus respuestas:</p>`}
    <div class="chips" style="margin-top:10px">${ps.map(p=>`<button class="chip ${s.rsvp[p.id]||""}" onclick="cycleRsvp('${s.id}','${p.id}')">${esc(p.number)} ${esc(p.name)}${injured(p)?" 🩹":""}${s.rsvp[p.id]?" · "+RSVP[s.rsvp[p.id]]:""}</button>`).join("")}</div>
    <p class="muted">Toca un nombre para cambiar su respuesta: Voy → No voy → Duda → sin respuesta.</p></details>
-  <details class="card" ${isUp?"":"open"}><summary><b>✅ Pasar lista</b> <span class="pill">${cnt("P")+cnt("T")}/${ps.length}</span></summary>
+  ${(()=>{const live1=s.type==="partido"&&s.date<=today();const lista=`  <details class="card" ${isUp||(live1&&Object.keys(s.att).length)?"":"open"}><summary><b>✅ Pasar lista</b> <span class="pill">${cnt("P")+cnt("T")}/${ps.length}</span></summary>
   <div class="row" style="margin:10px 0">${Object.keys(ATT).map(k=>`<span class="pill">${ATT[k]}: ${cnt(k)}</span>`).join("")}</div>
   <div class="row"><button class="btn sec small" onclick="allPresent('${s.id}')">Todos presentes</button>${Object.keys(s.rsvp).length?`<button class="btn sec small" onclick="fromRsvp('${s.id}')">Copiar de la convocatoria</button>`:""}</div>
   ${ps.length?`<ul class="list">${ps.map(p=>`<li>${avatar(p)}<div class="grow">${esc(p.name)}</div>
     <div class="att">${Object.keys(ATT).map(k=>`<button title="${ATT[k]}" class="${k} ${s.att[p.id]===k?"on":""}" onclick="mark('${s.id}','${p.id}','${k}')">${k}</button>`).join("")}</div></li>`).join("")}</ul>
-    <p class="muted">P = presente · A = ausente · T = tarde · J = justificado</p>`:`<div class="empty">Primero añade jugadoras en Plantilla.</div>`}</details>
-  ${s.type==="partido"?rivalCard(s)+liveStats(s):planCard(s)}
+    <p class="muted">P = presente · A = ausente · T = tarde · J = justificado</p>`:`<div class="empty">Primero añade jugadoras en Plantilla.</div>`}</details>`;const body=s.type==="partido"?rivalCard(s)+liveStats(s):planCard(s);return live1?body+lista:lista+body})()}
   ${wellCard(s)}
   <div class="card"><h3>Vídeos de esta sesión</h3>${videoList(db.videos.filter(v=>v.session===s.id))||'<div class="muted">Ninguno. Añádelos en Más › Vídeos.</div>'}</div>
   <button class="btn danger" onclick="delSession('${s.id}')">Eliminar sesión</button>`;
@@ -1123,6 +1161,7 @@ function vStats(){
   </tbody></table></div><p class="muted">PJ = partidos jugados · Rec y Saq★ = nota media 0-3. En gris, quien ha jugado poco: no saques conclusiones todavía. Mira la proporción: no es lo mismo 10 puntos de ataque que 10 con 5 bloqueos. Toca una fila para ver su ficha.</p></div>
   <div class="card"><h2>Partido a partido</h2><ul class="list">${[...ms].filter(s=>evs(s).length||s.date<=today()).sort((a,b)=>b.date.localeCompare(a.date)).map(s=>{const m=matchSum(s);const sc=setScores(s);return `<li class="click" onclick="tab='cal';openSession('${s.id}')"><div class="grow"><b>${fmtDate(s.date)}</b> ${esc(s.title)} ${sc.sets.length?`<span class="pill ${sc.won>sc.lost?"ok":sc.won<sc.lost?"bad":""}">${sc.won}-${sc.lost}</span>`:""}<div class="muted">Ganados ${m.won} + ${m.opp} por error rival · perdidos ${m.given} por errores + ${m.rival} del rival</div></div><span>›</span></li>`}).join("")}</ul>
   <div class="row" style="margin-top:8px"><button class="btn sec small" onclick="exportStatsCSV()">📊 Exportar CSV</button></div></div>
+  ${matchTrendCard()}
   ${rotSeasonCard()}
   ${playTimeCard()}
   ${mapStatsCard()}
