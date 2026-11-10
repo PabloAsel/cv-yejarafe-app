@@ -1,5 +1,5 @@
 /**
- * CV Yejarafe · Conexión entre la app y esta hoja de Google. (versión 2)
+ * CV Yejarafe · Conexión entre la app y esta hoja de Google. (versión 3)
  *
  * Cómo instalarlo (una sola vez, 3 minutos):
  *  1. En la hoja: menú Extensiones › Apps Script.
@@ -33,7 +33,8 @@ function doGet(e) {
     if (!s) return json({ ok: false, error: 'no encontrado' });
     const ses = { id: s.id, type: s.type, date: s.date, time: s.time || '', title: s.title || '', place: s.place || '' };
     if (p.a === 'live') return json({ ok: true, team: db.team, session: ses, live: s.live || null });
-    const players = db.players.map(x => ({ id: x.id, name: x.name, number: x.number || '' }));
+    const t0 = (db.teams && db.teams[0] && db.teams[0].id) || 't0';
+    const players = db.players.filter(x => (x.tm || t0) === (s.tm || t0)).map(x => ({ id: x.id, name: x.name, number: x.number || '' }));
     return json({ ok: true, team: db.team, session: ses, players: players });
   }
   const k = key();
@@ -120,22 +121,28 @@ function writeDb(db) {
 }
 
 function writeViews(db) {
-  const players = db.players.slice().sort((a, b) => (+a.number || 999) - (+b.number || 999));
+  // Varios equipos: si el club tiene más de uno, cada pestaña lleva delante la columna "Equipo".
+  const teams = db.teams || [];
+  const multi = teams.length > 1;
+  const t0 = (teams[0] && teams[0].id) || 't0';
+  const tname = x => { const t = teams.find(y => y.id === (x.tm || t0)) || {}; return t.name || [t.cat, (t.gen || '').toLowerCase(), t.sub].filter(Boolean).join(' ') || 'Equipo principal'; };
+  const players = db.players.slice().sort((a, b) => (multi ? tname(a).localeCompare(tname(b)) : 0) || (+a.number || 999) - (+b.number || 999));
   const name = id => (db.players.find(p => p.id === id) || {}).name || '';
+  const putT = (tab, rows) => put(tab, multi ? rows.map((r, i) => [i === 0 ? 'Equipo' : tname(players[i - 1])].concat(r)) : rows);
   const ATT = { P: 'Presente', A: 'Ausente', T: 'Tarde', J: 'Justificado' };
   const sessions = db.sessions.slice().sort((a, b) => a.date.localeCompare(b.date));
   const pct = pid => { let n = 0, ok = 0; sessions.forEach(s => { const v = s.att[pid]; if (v) { n++; if (v === 'P' || v === 'T') ok++; } }); return n ? Math.round(ok * 100 / n) + '%' : ''; };
 
   const age = b => { if (!b) return ''; const d = new Date(b + 'T12:00'), n = new Date(); let a = n.getFullYear() - d.getFullYear(); if (n.getMonth() < d.getMonth() || (n.getMonth() === d.getMonth() && n.getDate() < d.getDate())) a--; return a; };
-  put('Plantilla', [['Dorsal', 'Nombre', 'Posición', 'Teléfono', 'Nacimiento', 'Edad', 'Altura (cm)', 'Peso (kg)', 'Alcance ataque', 'Alcance bloqueo', 'Mano', '% asistencia']]
+  putT('Plantilla', [['Dorsal', 'Nombre', 'Posición', 'Teléfono', 'Nacimiento', 'Edad', 'Altura (cm)', 'Peso (kg)', 'Alcance ataque', 'Alcance bloqueo', 'Mano', '% asistencia']]
     .concat(players.map(p => [p.number, p.name, p.pos, p.phone || '', p.birth || '', age(p.birth), p.height || '', p.weight || '', p.spike || '', p.block || '', p.hand || '', pct(p.id)])));
 
-  put('Asistencia', [['Dorsal', 'Nombre'].concat(sessions.map(s => s.date + ' ' + s.type + (s.title ? ' ' + s.title : '')))]
+  putT('Asistencia', [['Dorsal', 'Nombre'].concat(sessions.map(s => s.date + ' ' + s.type + (s.title ? ' ' + s.title : '')))]
     .concat(players.map(p => [p.number, p.name].concat(sessions.map(s => ATT[s.att[p.id]] || '')))));
 
   const ms = sessions.filter(s => s.type === 'partido');
   const avg = a => a.length ? Math.round(a.reduce((x, y) => x + y, 0) / a.length * 10) / 10 : '';
-  put('Estadísticas', [['Dorsal', 'Nombre', 'Partidos', 'Ataque', 'Bloqueo', 'Saque', 'Puntos', 'Errores', 'Recepción media', 'Saque medio']]
+  putT('Estadísticas', [['Dorsal', 'Nombre', 'Partidos', 'Ataque', 'Bloqueo', 'Saque', 'Puntos', 'Errores', 'Recepción media', 'Saque medio']]
     .concat(players.map(p => {
       const r = { A: 0, B: 0, S: 0, E: 0 }, rec = [], srv = [];
       ms.forEach(s => (s.ev || []).forEach(e => {
@@ -147,7 +154,7 @@ function writeViews(db) {
     })));
 
   const fees = db.fees || [];
-  put('Cuotas', [['Dorsal', 'Nombre'].concat(fees.map(f => f.name + ' (' + f.amount + ' €)'))]
+  putT('Cuotas', [['Dorsal', 'Nombre'].concat(fees.map(f => f.name + ' (' + f.amount + ' €)'))]
     .concat(players.map(p => [p.number, p.name].concat(fees.map(f => (f.paid || {})[p.id] ? 'Pagado' : 'Pendiente')))));
 
   put('Gastos', [['Fecha', 'Tipo', 'Concepto', 'Importe']]

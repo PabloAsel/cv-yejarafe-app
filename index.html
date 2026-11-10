@@ -359,6 +359,8 @@ nav.tabs button.on{color:var(--brand)}
 .ptbar{position:relative;height:18px;border-radius:9px;background:color-mix(in srgb,var(--muted) 18%,transparent);overflow:hidden;min-width:70px}.ptbar i{position:absolute;inset:0 auto 0 0;background:var(--brand);border-radius:9px}.ptbar span{position:relative;font-size:.75rem;font-weight:700;padding:0 6px;line-height:18px;color:var(--text);text-shadow:0 0 3px var(--card),0 0 3px var(--card)}
 .goals li{gap:8px}.goal{display:flex;gap:8px;align-items:flex-start;cursor:pointer;margin:0}.goal input{width:auto;margin-top:3px}.goal.done span{text-decoration:line-through;opacity:.6}
 .weekcard{border-left:4px solid var(--brand)}
+.tsel{background:rgba(255,255,255,.16);padding:2px 8px;border-radius:999px;font-weight:700;letter-spacing:0;opacity:1}#teamTitle{cursor:pointer;min-width:0}#teamTitle span{min-width:0}#teamTitle small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:62vw}
+.teamsheet h4{margin:14px 0 4px;text-transform:uppercase;font-size:.78rem;letter-spacing:.06em;color:var(--muted)}.teamsheet li.cur{background:color-mix(in srgb,var(--brand) 9%,transparent);border-radius:12px}
 </style>
 </head>
 <body>
@@ -397,7 +399,55 @@ let tab="home",selSession=null,selSlot=null,selPlayer=null,vfilter="",exfilter="
 /* ---------- datos ---------- */
 function blank(){return {team:"CV Yejarafe",players:[],sessions:[],videos:[],exercises:[],notes:[],fees:[],money:[],tests:[],leagues:[],plays:[],systems:[],lineups:[],lineup:{slots:[null,null,null,null,null,null],libero:null,rot:1},updatedAt:0}}
 function load(){try{const s=JSON.parse(localStorage.getItem(KEY));if(s&&s.players)return Object.assign(blank(),s)}catch(e){}return blank()}
-let db=load();
+/* ---------- VARIOS EQUIPOS (categorías) ---------- */
+const CATS=["Sénior","Júnior","Juvenil","Cadete","Infantil","Alevín","Benjamín","Aficionados","Veteranos"];
+const GENS=["Femenino","Masculino","Mixto"];
+const SCOPED=["players","sessions","videos","notes","fees","money","lineups","tests"];
+const TKEY="voleibol-team";
+let root=load(),VW={},curT=null;
+function ensureTeams(){if(!Array.isArray(root.teams)||!root.teams.length)root.teams=[{id:"t0",cat:"",gen:"",sub:"",lineup:root.lineup}];
+  if(!curT){try{curT=localStorage.getItem(TKEY)}catch(e){}}if(!root.teams.some(t=>t.id===curT))curT=root.teams[0].id}
+function curTeam(){return root.teams.find(t=>t.id===curT)||root.teams[0]}
+const tmOf=x=>x.tm||root.teams[0].id;
+function flush(){Object.keys(VW).forEach(k=>{VW[k].forEach(x=>{if(!x.tm)x.tm=curT});root[k]=(root[k]||[]).filter(x=>tmOf(x)!==curT).concat(VW[k])})}
+function setRoot(x){root=x;VW={};ensureTeams()}
+function raw(){flush();return root}
+const db=new Proxy({},{
+  get(_,k){if(k==="toJSON")return ()=>raw();if(SCOPED.includes(k))return VW[k]||(VW[k]=(root[k]||[]).filter(x=>tmOf(x)===curT));
+    if(k==="lineup"){const t=curTeam();return t.lineup||(t.lineup={slots:[null,null,null,null,null,null],libero:null,rot:1})}return root[k]},
+  set(_,k,v){if(SCOPED.includes(k))VW[k]=v;else if(k==="lineup")curTeam().lineup=v;else root[k]=v;return true},
+  has(_,k){return k in root},ownKeys(){return Reflect.ownKeys(root)},getOwnPropertyDescriptor(_,k){return {value:root[k],enumerable:true,configurable:true,writable:true}}});
+ensureTeams();
+function teamName(t,short){if(!t)return "";const g=short?({Femenino:"fem.",Masculino:"masc.",Mixto:"mixto"}[t.gen]||""):(t.gen||"").toLowerCase();return t.name||[t.cat,g,t.sub].filter(Boolean).join(" ")||"Equipo principal"}
+function teamCount(t,k){return (raw()[k]||[]).filter(x=>tmOf(x)===t.id).length}
+function switchTeam(id){if(id===curT)return;flush();curT=id;VW={};try{localStorage.setItem(TKEY,id)}catch(e){}selSession=null;selPlayer=null;selSlot=null;const d=$("#dlg");if(d.open){d.onclose=null;d.close()}go("home");toast("Equipo: "+teamName(curTeam()))}
+function openTeams(){const d=$("#dlg");const T=raw().teams;const groups={};T.forEach(t=>{(groups[t.cat||"Sin categoría"]=groups[t.cat||"Sin categoría"]||[]).push(t)});
+  const order=Object.keys(groups).sort((a,b)=>{const i=CATS.indexOf(a),j=CATS.indexOf(b);return (i<0?99:i)-(j<0?99:j)||a.localeCompare(b)});
+  d.innerHTML=`<div class="teamsheet"><h3>👥 Equipos del club</h3><p class="muted" style="margin-top:0">Cada equipo tiene su plantilla, calendario, estadísticas, cuotas y notas. Ligas, ejercicios y pizarra son comunes.</p>
+   ${order.map(c=>`<h4>${esc(c)}</h4><ul class="list">${groups[c].sort((a,b)=>teamName(a).localeCompare(teamName(b))).map(t=>`<li class="click ${t.id===curT?"cur":""}" onclick="switchTeam('${t.id}')"><div class="grow"><b>${esc(teamName(t))}</b><div class="muted">${teamCount(t,"players")} en plantilla · ${teamCount(t,"sessions")} sesiones</div></div>${t.id===curT?`<span class="pill ok">viendo</span>`:""}<button class="btn sec small" aria-label="Editar" onclick="event.stopPropagation();teamForm('${t.id}')">✎</button></li>`).join("")}</ul>`).join("")}
+   <div class="row" style="margin-top:14px;justify-content:space-between"><button class="btn" onclick="teamForm()">＋ Añadir equipo</button><button class="btn sec" onclick="$('#dlg').close()">Cerrar</button></div></div>`;
+  d.onclose=null;if(!d.open)d.showModal()}
+function teamForm(id){const d=$("#dlg");const t=id?root.teams.find(x=>x.id===id):{cat:"Sénior",gen:"Femenino",sub:""};const custom=t.cat&&!CATS.includes(t.cat);
+  const feds=[];(db.leagues||[]).forEach(L=>L.teams.forEach(x=>{if(x.mine)feds.push({L,x})}));
+  d.innerHTML=`<form id="tf" onsubmit="teamSave(event,'${id||""}')"><h3>${id?"Editar equipo":"Nuevo equipo"}</h3>
+   <label>Categoría</label><select name="cat" onchange="this.form.other.hidden=this.value!=='_'">${CATS.map(c=>`<option ${t.cat===c?"selected":""}>${c}</option>`).join("")}<option value="_" ${custom?"selected":""}>Otra…</option></select>
+   <input name="other" placeholder="Nombre de la categoría" value="${custom?esc(t.cat):""}" ${custom?"":"hidden"} style="margin-top:8px" maxlength="30">
+   <div class="row" style="margin-top:8px"><div class="grow"><label>Género</label><select name="gen"><option value="">—</option>${GENS.map(g=>`<option ${t.gen===g?"selected":""}>${g}</option>`).join("")}</select></div>
+   <div class="grow"><label>Equipo</label><select name="sub"><option value="">Único</option>${["A","B","C","D","E"].map(g=>`<option ${t.sub===g?"selected":""}>${g}</option>`).join("")}</select></div></div>
+   ${feds.length?`<label style="margin-top:8px">Equipo en la federación (para su liga en Inicio)</label><select name="fed"><option value="">Ninguno</option>${feds.map(({L,x})=>`<option value="${x.id}" ${t.fed===x.id?"selected":""}>${esc(x.name)} · ${esc(L.name)}</option>`).join("")}</select>`:""}
+   <div class="row" style="margin-top:14px;justify-content:space-between">${id&&root.teams.length>1?`<button type="button" class="btn danger" onclick="teamDel('${id}')">Eliminar</button>`:"<span></span>"}<span class="row"><button type="button" class="btn sec" onclick="openTeams()">Volver</button><button class="btn">Guardar</button></span></div></form>`;
+  d.onclose=null;if(!d.open)d.showModal()}
+function teamSave(e,id){e.preventDefault();const f=e.target;const cat=f.cat.value==="_"?f.other.value.trim():f.cat.value;if(!cat){alert("Pon la categoría");return}
+  const v={cat,gen:f.gen.value,sub:f.sub.value,fed:f.fed?f.fed.value:""};
+  if(root.teams.some(t=>t.id!==id&&t.cat===v.cat&&(t.gen||"")===v.gen&&(t.sub||"")===v.sub)){alert("Ya existe ese equipo. Cambia la letra (A, B, C…).");return}
+  if(id){Object.assign(root.teams.find(t=>t.id===id),v,{name:""});save();render();openTeams()}
+  else{const t={id:"t"+uid(),...v};root.teams.push(t);save();switchTeam(t.id)}}
+function teamDel(id){const t=root.teams.find(x=>x.id===id);const n=teamCount(t,"players"),m=teamCount(t,"sessions");
+  if(!confirm(`¿Eliminar “${teamName(t)}”?`+(n||m?` Se borran también sus ${n} jugadoras y ${m} sesiones.`:"")))return;if((n||m)&&!confirm("Último aviso: no se puede deshacer. ¿Eliminar?"))return;
+  flush();if(id===curT){curT=root.teams.find(x=>x.id!==id).id;try{localStorage.setItem(TKEY,curT)}catch(e){}}
+  SCOPED.forEach(k=>root[k]=(root[k]||[]).filter(x=>tmOf(x)!==id));root.teams=root.teams.filter(x=>x.id!==id);VW={};save();go("home");openTeams()}
+function teamsCard(){const T=root.teams;return `<div class="card"><h2>👥 Equipos</h2><p class="muted" style="margin-top:0">Estás viendo: <b>${esc(teamName(curTeam()))}</b> · ${T.length} equipo${T.length>1?"s":""} en el club. También puedes cambiar tocando el nombre arriba del todo.</p><button class="btn" onclick="openTeams()">Cambiar o añadir equipos</button></div>`}
+
 let sync=(()=>{try{return Object.assign({url:"",base:0,dirty:false},JSON.parse(localStorage.getItem(SKEY)||"{}"))}catch(e){return {url:"",base:0,dirty:false}}})();
 function saveSyncState(){try{localStorage.setItem(SKEY,JSON.stringify(sync))}catch(e){}}
 function persist(){try{localStorage.setItem(KEY,JSON.stringify(db))}catch(e){toast("No se pudo guardar en este navegador")}}
@@ -420,7 +470,7 @@ function keepScroll(f){const y=scrollY;const open=[...document.querySelectorAll(
 function go(t){if(t==="board"){t="rot";rotTab="board"}if(t==="ex"&&tab==="ex")selExercise=null;tab=t;selSession=null;selSlot=null;selPlayer=null;selLeague=null;selTeam=null;render();scrollTo(0,0)}
 function render(){
   const myT=(db.leagues||[]).map(L=>L.teams.find(t=>t.mine)).find(t=>t&&t.logo);const TT={home:"Inicio",cal:"Calendario",roster:"Plantilla",stats:"Estadísticas",more:"Más",videos:"Vídeos",rot:"Táctica",ex:"Ejercicios",leagues:"Ligas",board:"Pizarra táctica",notes:"Notas",money:"Cuotas y gastos",settings:"Ajustes"};
-  $("#teamTitle").innerHTML=`<img src="crest.png" alt="">`+`<span>${esc(db.team||"Mi equipo")}<small>${TT[tab]||""}</small></span>`;
+  $("#teamTitle").innerHTML=`<img src="crest.png" alt="">`+`<span>${esc(db.team||"Mi equipo")}<small><b class="tsel">${esc(teamName(curTeam(),true))} ▾</b> · ${TT[tab]||""}</small></span>`;$("#teamTitle").onclick=openTeams;
   $("#app").classList.toggle("dash",tab==="home");
   const navTab=MORE.includes(tab)?"more":tab;
   document.querySelectorAll("#tabs button").forEach(b=>b.classList.toggle("on",b.dataset.t===navTab));
@@ -439,13 +489,14 @@ function vHome(){
   const next=up[0];
   const lastM=db.sessions.filter(s=>s.type==="partido"&&s.date<=today()&&evs(s).length).sort((a,b)=>b.date.localeCompare(a.date))[0];
   const pend=db.fees.reduce((n,f)=>n+db.players.filter(p=>!f.paid?.[p.id]).length,0);
+  if(!db.players.length&&root.teams.length>1)return `<div class="card"><h2>${esc(teamName(curTeam()))}</h2><p>Este equipo aún no tiene plantilla.</p><div class="row"><button class="btn" onclick="go('roster')">Ir a Plantilla</button><button class="btn sec" onclick="openTeams()">Cambiar de equipo</button></div></div>`;
   if(!db.players.length)return `<div class="card"><h2>¡Bienvenido! 👋</h2><p>Empieza en 3 pasos:</p><ol><li>Añade a las jugadoras en <b>Plantilla</b> (puedes pegar la lista entera).</li><li>Crea el próximo entreno o partido en <b>Calendario</b>.</li><li>Envía la convocatoria por WhatsApp y pasa lista.</li></ol><div class="row"><button class="btn" onclick="go('roster')">Ir a Plantilla</button><button class="btn sec" onclick="loadDemo()">🎲 Probar con un equipo de ejemplo</button></div></div>`+(sync.url?"":syncHint());
   let h=db.players.some(p=>p.demo)?`<div class="card" style="border-color:var(--warn)"><div class="row"><div class="grow"><b>🎲 Estás viendo un equipo de ejemplo</b><div class="muted">Pruébalo todo. Cuando metas a tu equipo real, quítalo.</div></div><button class="btn danger small" onclick="clearDemo()">Quitar ejemplo</button></div></div>`:"";
   if(next){const r=rsvpCount(next);h+=`<div class="card click hero" onclick="tab='cal';openSession('${next.id}')"><div class="muted">${next.type==="partido"?"Próximo partido":"Próximo"}</div>${next.type==="partido"?`<div class="matchday">Match <span>day</span></div>`:""}<h2 style="margin:4px 0">${sessLabel(next)}</h2>${next.title?`<div>${esc(next.title)}</div>`:""}${next.place?`<div class="muted">📍 ${esc(next.place)}</div>`:""}
     <div class="row" style="margin-top:8px"><span class="pill ok">Van ${r.si}</span><span class="pill bad">No ${r.no}</span><span class="pill warn">Duda ${r.duda}</span><span class="pill">Sin responder ${r.none}</span></div></div>`}
   else h+=`<div class="card"><h2>Sin eventos próximos</h2><button class="btn" onclick="go('cal')">＋ Crear entreno o partido</button></div>`;
   if(lastM){const sc=setScores(lastM);h+=`<div class="card click" onclick="tab='cal';openSession('${lastM.id}')"><div class="muted">Último partido · ${fmtDate(lastM.date)}</div><h2 style="margin:4px 0">${esc(db.team)} ${sc.won} – ${sc.lost} ${esc(lastM.title||"Rival")}</h2><div class="muted">${sc.sets.map(x=>x.us+"-"+x.them).join(" · ")}</div></div>`}
-  (db.leagues||[]).forEach(L=>{const st=standings(L);const i=st.findIndex(r=>r.t.mine);if(i<0)return;const me=st[i].t;const nx=L.matches.filter(m=>(m.home===me.id||m.away===me.id)&&!setsOf(m)&&!m.postponed&&m.date>=today()).sort((a,b)=>(a.date+(a.time||'')).localeCompare(b.date+(b.time||'')))[0];
+  (db.leagues||[]).forEach(L=>{const st=standings(L);const fed=curTeam().fed;const i=st.findIndex(r=>fed?r.t.id===fed:r.t.mine);if(i<0)return;const me=st[i].t;const nx=L.matches.filter(m=>(m.home===me.id||m.away===me.id)&&!setsOf(m)&&!m.postponed&&m.date>=today()).sort((a,b)=>(a.date+(a.time||'')).localeCompare(b.date+(b.time||'')))[0];
     if(nx){const rv=L.teams.find(t=>t.id===(nx.home===me.id?nx.away:nx.home))||{name:'?'};h+=`<div class="card click" onclick="go('leagues');selLeague='${L.id}';selTeam='${me.id}';render()"><div class="muted">Próximo partido de liga · ${nx.j?'J'+nx.j+' · ':''}${fmtDate(nx.date)}${nx.time&&nx.time!=='00:00'?' '+nx.time:''}</div><div class="vs"><div>${crest(L.teams.find(t=>t.id===nx.home),48)}<b>${esc(tname(L,nx.home))}</b></div><span>VS</span><div>${crest(L.teams.find(t=>t.id===nx.away),48)}<b>${esc(tname(L,nx.away))}</b></div></div>${nx.venue?`<div class="muted">📍 ${esc(nx.venue)} · ${nx.home===me.id?'en casa':'fuera'}</div>`:''}</div>`}
     h+=`<div class="card click" onclick="go('leagues');selLeague='${L.id}';render()"><div class="muted">${esc(L.name)}</div><h2 style="margin:4px 0;display:flex;align-items:center;gap:8px">${crest(st[i].t,32)}${i+1}º · ${st[i].pts} puntos</h2><div class="muted">${st[i].pg} ganados · ${st[i].pp} perdidos · sets ${st[i].sf}-${st[i].sc}</div></div>`});
   h+=`<div class="quick"><button onclick="go('board')"><span>✏️</span>Pizarra</button><button onclick="go('ex')"><span>🏋️</span>Ejercicios</button><button onclick="go('stats')"><span>📊</span>Estadísticas</button><button onclick="go('leagues')"><span>🏆</span>Ligas</button></div>`;
@@ -930,7 +981,7 @@ function importFed(){const T=fedTeams();const d=$("#dlg");
     if(f.demo&&f.demo.checked){["players","sessions","notes","fees","tests"].forEach(k=>db[k]=(db[k]||[]).filter(x=>!x.demo));try{localStorage.setItem("voleibol-seeded","1")}catch(e){}}
     const have=new Set(db.players.map(p=>norm(p.name)));let n=0;
     t.players.forEach(fp=>{const name=titleCase(fp.name);if(have.has(norm(name)))return;db.players.push({id:uid(),name,number:fp.num||"",pos:fp.pos&&POS.includes(fp.pos)?fp.pos:"Otro",phone:"",fed:fp.id});have.add(norm(name));n++});
-    save();render();toast(n?`${n} jugadores importados. Pon dorsal y posición a cada uno.`:"Ya estaban todos en la plantilla")}}
+    curTeam().fed=t.id;save();render();toast(n?`${n} jugadores importados. Pon dorsal y posición a cada uno.`:"Ya estaban todos en la plantilla")}}
 
 /* ---------- LESIONES ---------- */
 const injured=p=>!!(p&&p.inj);
@@ -1861,8 +1912,9 @@ function installCard(){if(isStandalone())return "";const ua=navigator.userAgent;
    :`<p class="muted" style="margin:0">En el ordenador, con Chrome o Edge, pulsa el icono de instalar <b>⊕</b> a la derecha de la barra de direcciones.</p>`;
   return `<div class="card"><div class="install"><img src="icon.svg" width="52" height="52" style="border-radius:14px" alt=""><div class="grow"><h3 style="margin:0 0 4px">Instala la app</h3>${how}</div></div><p class="muted" style="margin-bottom:0">Funciona en iPhone, iPad, móviles y tablets Android y en el ordenador. Una vez instalada se abre a pantalla completa y funciona sin conexión.</p></div>`}
 function vSettings(){
-  return installCard()+`<div class="card"><h2>Equipo</h2><label>Nombre del equipo</label>
+  return installCard()+`<div class="card"><h2>Club</h2><label>Nombre del club</label>
   <div class="row"><input id="tname" class="grow" value="${esc(db.team)}"><button class="btn" onclick="db.team=$('#tname').value.trim()||'Mi equipo';save();render();toast('Guardado')">Guardar</button></div></div>
+  ${teamsCard()}
   <div class="card"><h2>☁️ Hoja de Google</h2>
   ${sync.url?`<p style="margin-top:0">✅ Conectado. Los cambios se guardan solos en la hoja y se cargan al abrir la app.</p><p class="muted">${sync.last?"Última sincronización: "+new Date(sync.last).toLocaleString("es-ES"):""}${sync.err?" · ⚠️ el último intento falló":""}</p>
    <div class="row"><button class="btn" onclick="pull(true)">↻ Sincronizar ahora</button><button class="btn sec small" onclick="copyText(appUrl()+'?sync='+encodeURIComponent(sync.url)+'&k='+syncKey())">🔗 Enlace para otro entrenador</button><button class="btn danger small" onclick="disconnect()">Desconectar</button></div>
@@ -1882,14 +1934,14 @@ function vSettings(){
 }
 function download(name,text,type){const b=new Blob([text],{type});const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},500)}
 function exportJSON(){download(`voleibol-${today()}.json`,JSON.stringify(db,null,1),"application/json")}
-function importJSON(inp){const f=inp.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const d=JSON.parse(r.result);if(!d.players)throw 0;if(!confirm("Esto sustituye los datos actuales por los del archivo. ¿Seguir?"))return;db=Object.assign(blank(),d);save();render();toast("Datos importados")}catch(e){alert("Ese archivo no es una copia válida.")}};r.readAsText(f)}
+function importJSON(inp){const f=inp.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const d=JSON.parse(r.result);if(!d.players)throw 0;if(!confirm("Esto sustituye los datos actuales por los del archivo. ¿Seguir?"))return;setRoot(Object.assign(blank(),d));save();render();toast("Datos importados")}catch(e){alert("Ese archivo no es una copia válida.")}};r.readAsText(f)}
 const csvq=s=>`"${String(s??"").replace(/"/g,'""')}"`;
 function exportCSV(){const ss=[...db.sessions].sort((a,b)=>a.date.localeCompare(b.date));const ps=sortedPlayers();
   const head=["Dorsal","Nombre",...ss.map(s=>`${s.date} ${s.type}${s.title?" "+s.title:""}`),"% asistencia"];
   const rows=ps.map(p=>[p.number,p.name,...ss.map(s=>s.att[p.id]?ATT[s.att[p.id]]:""),pct(p.id)+"%"]);
   download(`asistencia-${today()}.csv`,"﻿"+[head,...rows].map(r=>r.map(csvq).join(",")).join("\n"),"text/csv")}
 function exportRosterCSV(){const rows=[["Dorsal","Nombre","Posición","Teléfono","Nacimiento","Edad","Altura (cm)","Peso (kg)","Alcance ataque","Alcance bloqueo","Mano"],...sortedPlayers().map(p=>[p.number,p.name,p.pos,p.phone,p.birth||"",age(p.birth)??"",p.height||"",p.weight||"",p.spike||"",p.block||"",p.hand||""])];download(`plantilla-${today()}.csv`,"﻿"+rows.map(r=>r.map(csvq).join(",")).join("\n"),"text/csv")}
-function wipe(){if(!confirm("¿Seguro? Se borra todo en este móvil."))return;if(!confirm("Último aviso: ¿borrar todo?"))return;db=blank();persist();render()}
+function wipe(){if(!confirm("¿Seguro? Se borra todo en este móvil."))return;if(!confirm("Último aviso: ¿borrar todo?"))return;setRoot(blank());persist();render()}
 
 /* sincronización con la hoja (Google Apps Script) */
 let pushT=null,busy=false;
@@ -1902,10 +1954,10 @@ function mergeArr(remote,local,isSession){const m=new Map((remote||[]).map(x=>[x
     if(isSession&&r){const rt=r.rsvpT||{},lt=x.rsvpT||{};const rs={...(x.rsvp||{})};Object.keys({...(r.rsvp||{}),...rt}).forEach(k=>{if((rt[k]||0)>(lt[k]||0)){if(r.rsvp&&r.rsvp[k])rs[k]=r.rsvp[k];else delete rs[k]}});
       const T={...lt};Object.keys(rt).forEach(k=>{if((rt[k]||0)>(T[k]||0))T[k]=rt[k]});const W={...(r.well||{})};Object.entries(x.well||{}).forEach(([k,v])=>{if(!W[k]||(v.t||0)>=(W[k].t||0))W[k]=v});m.set(x.id,{...x,rsvp:rs,rsvpT:T,well:W})}
     else m.set(x.id,x)});return [...m.values()]}
-function merge(remote,local){const out=Object.assign(blank(),remote);["players","videos","exercises","notes","fees","money","lineups","tests","leagues","plays","systems"].forEach(k=>out[k]=mergeArr(remote[k],local[k]));out.sessions=mergeArr(remote.sessions,local.sessions,true);out.team=local.team||remote.team;out.rivals={...(remote.rivals||{})};Object.entries(local.rivals||{}).forEach(([k,v])=>{if(!out.rivals[k]||(v.at||0)>=(out.rivals[k].at||0))out.rivals[k]=v});out.lineup=local.lineup||remote.lineup;return out}
+function merge(remote,local){const out=Object.assign(blank(),remote);["players","videos","exercises","notes","fees","money","lineups","tests","leagues","plays","systems","teams"].forEach(k=>out[k]=mergeArr(remote[k],local[k]));out.sessions=mergeArr(remote.sessions,local.sessions,true);out.team=local.team||remote.team;out.rivals={...(remote.rivals||{})};Object.entries(local.rivals||{}).forEach(([k,v])=>{if(!out.rivals[k]||(v.at||0)>=(out.rivals[k].at||0))out.rivals[k]=v});out.lineup=local.lineup||remote.lineup;return out}
 async function push(){if(!sync.url||busy)return;busy=true;syncDot();const td=today();db.sessions.forEach(x=>{if(x.type==="partido"&&x.date>=addDays(td,-1)&&x.date<=addDays(td,1)&&evs(x).length){const L=liveOf(x);const o=x.live;if(!o||JSON.stringify({...o,at:0})!==JSON.stringify({...L,at:0}))x.live=L}});
   try{let res=await api({a:"save",base:sync.base,db});
-    if(res.conflict){db=merge(res.db,db);db.updatedAt=Date.now();persist();res=await api({a:"save",base:res.db.updatedAt,db});if(!document.querySelector("dialog[open]"))keepScroll(()=>{})}
+    if(res.conflict){setRoot(merge(res.db,raw()));db.updatedAt=Date.now();persist();res=await api({a:"save",base:res.db.updatedAt,db});if(!document.querySelector("dialog[open]"))keepScroll(()=>{})}
     if(!res.ok)throw new Error(res.error||"error");
     sync.base=db.updatedAt;sync.dirty=false;sync.err=false;sync.last=Date.now()}
   catch(e){sync.err=true}
@@ -1913,14 +1965,14 @@ async function push(){if(!sync.url||busy)return;busy=true;syncDot();const td=tod
 async function pull(manual){if(!sync.url||busy)return;if(sync.dirty)await push();
   busy=true;syncDot();
   try{const res=await api();
-    if(res.db&&res.db.updatedAt){if(res.db.updatedAt!==db.updatedAt&&!sync.dirty){db=Object.assign(blank(),res.db);persist();if(!document.querySelector("dialog[open]"))keepScroll(()=>{})}sync.base=res.db.updatedAt}
+    if(res.db&&res.db.updatedAt){if(res.db.updatedAt!==db.updatedAt&&!sync.dirty){setRoot(Object.assign(blank(),res.db));persist();if(!document.querySelector("dialog[open]"))keepScroll(()=>{})}sync.base=res.db.updatedAt}
     sync.err=false;sync.last=Date.now();if(manual)toast("Sincronizado")}
   catch(e){sync.err=true;if(manual)toast("No se pudo conectar con la hoja")}
   busy=false;saveSyncState();syncDot()}
 async function connect(url){url=(url||"").trim();if(!/^https:\/\/script\.google(usercontent)?\.com\//.test(url)){alert("La dirección debe empezar por https://script.google.com/");return}
   sync.url=url;busy=true;syncDot();
   try{const res=await api();busy=false;
-    if(res.db&&res.db.players&&res.db.players.length){if(db.players.length&&db.players.every(p=>p.demo)){db=Object.assign(blank(),res.db);persist();sync.base=res.db.updatedAt;sync.dirty=false}else if(db.players.length&&!confirm("La hoja ya tiene datos. ¿Combinarlos con los de este móvil? (Cancelar = usar solo los de la hoja)")){db=Object.assign(blank(),res.db);persist();sync.base=res.db.updatedAt;sync.dirty=false}else{db=merge(res.db,db);db.updatedAt=Date.now();persist();sync.base=res.db.updatedAt;sync.dirty=true}}
+    if(res.db&&res.db.players&&res.db.players.length){if(db.players.length&&db.players.every(p=>p.demo)){setRoot(Object.assign(blank(),res.db));persist();sync.base=res.db.updatedAt;sync.dirty=false}else if(db.players.length&&!confirm("La hoja ya tiene datos. ¿Combinarlos con los de este móvil? (Cancelar = usar solo los de la hoja)")){setRoot(Object.assign(blank(),res.db));persist();sync.base=res.db.updatedAt;sync.dirty=false}else{setRoot(merge(res.db,raw()));db.updatedAt=Date.now();persist();sync.base=res.db.updatedAt;sync.dirty=true}}
     else{sync.base=res.db?res.db.updatedAt||0:0;sync.dirty=true;if(!db.updatedAt)db.updatedAt=Date.now()}
     saveSyncState();if(sync.dirty)await push();
     toast(sync.err?"Conectado, pero no se pudo guardar":"¡Conectado a la hoja de Google!")}
