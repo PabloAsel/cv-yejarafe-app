@@ -394,6 +394,7 @@ dialog[open]{animation:cardIn .2s ease}
 .agcard.match{border-left:4px solid var(--brand)}.agplace{display:block;margin-top:8px;color:var(--text);text-decoration:none;font-size:.9rem}.agplace span{color:var(--muted);text-decoration:underline}
 details.guide .gico{font-size:1.3rem}details.guide ol{margin:10px 0 12px;padding-left:22px}details.guide li{margin:6px 0;line-height:1.4}
 #printArea{display:none}@media print{@page{size:A4;margin:14mm}html{background:#fff!important}body.printing{background:#fff!important;color:#111!important}body.printing>*:not(#printArea){display:none!important}body.printing #printArea{display:block;font-family:Inter,system-ui,sans-serif;color:#111;font-size:11pt;line-height:1.4}#printArea *{-webkit-print-color-adjust:exact;print-color-adjust:exact}#printArea .pr-head{display:flex;align-items:center;gap:12px;border-bottom:3px solid #B12C24;padding-bottom:10px}#printArea .pr-club{font-family:"Barlow Condensed",sans-serif;font-size:22pt;font-weight:800;text-transform:uppercase;line-height:1}#printArea .pr-sub{color:#555}#printArea .pr-date{margin-left:auto;color:#555}#printArea .pr-player{display:flex;align-items:center;gap:14px;margin:16px 0 4px}#printArea .pr-num{font-family:"Barlow Condensed",sans-serif;font-size:30pt;font-weight:800;color:#fff;background:#B12C24;min-width:58px;height:58px;border-radius:12px;display:grid;place-items:center}#printArea h1{margin:0;font-size:20pt}#printArea h2{font-size:12pt;text-transform:uppercase;letter-spacing:.04em;color:#B12C24;margin:18px 0 8px;border-bottom:1px solid #ddd;padding-bottom:3px}#printArea .pr-ks{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}#printArea .pr-k{border:1px solid #ddd;border-radius:8px;padding:8px 4px;text-align:center;break-inside:avoid}#printArea .pr-k b{display:block;font-family:"Barlow Condensed",sans-serif;font-size:18pt;line-height:1}#printArea .pr-k span{font-size:8pt;color:#555}#printArea .pr-bar{height:8px;background:#eee;border-radius:4px;margin-top:8px;overflow:hidden}#printArea .pr-bar i{display:block;height:100%;background:#B12C24}#printArea table{width:100%;border-collapse:collapse}#printArea th,#printArea td{text-align:left;padding:5px 6px;border-bottom:1px solid #e5e5e5;font-size:10pt}#printArea th{color:#555;font-weight:600}#printArea .pr-goals{list-style:none;padding:0;margin:0}#printArea .pr-goals li{padding:3px 0}#printArea .pr-goals span{color:#555}#printArea .pr-note{border-left:3px solid #B12C24;padding-left:10px;margin:0}#printArea .pr-foot{margin-top:26px;text-align:center;color:#777;font-style:italic}}
+body.simple .advh{display:none!important}body.simple #tabs button[data-t=ex]{display:none}body.simple .btn{min-height:46px}body.simple .btn.small{min-height:40px}body.simple .att button{min-width:44px;min-height:44px}.quick.two{grid-template-columns:1fr 1fr}.quick.two button{font-size:.9rem;padding:16px 6px 14px}.smcard{border:1px dashed var(--line)}
 </style>
 </head>
 <body>
@@ -418,6 +419,10 @@ const ATT={P:"Presente",A:"Ausente",T:"Tarde",J:"Justificado"};
 const RSVP={si:"Voy",no:"No voy",duda:"Duda"};
 const ST={A:"Ataque",B:"Bloqueo",S:"Saque",E:"Error"};
 const EXCAT=["Calentamiento","Técnica","Táctica","Físico","Juego","Vuelta a la calma"];
+const SMKEY="voleibol-simple";let simple=(()=>{try{return localStorage.getItem(SMKEY)!=="0"}catch(e){return true}})();
+const adv=h=>simple?"":h;
+function setSimple(v){simple=!!v;try{localStorage.setItem(SMKEY,v?"1":"0")}catch(e){}render();scrollTo(0,0);toast(v?"Modo sencillo activado":"Funciones avanzadas a la vista")}
+function simpleCard(){return simple?`<div class="card smcard"><b>🧩 Modo sencillo</b><p class="muted" style="margin:4px 0 10px">Ves lo que se usa en pista: calendario, convocatoria, pasar lista, plantilla, táctica, estadísticas y liga. Cuotas, vídeos, notas, ejercicios, fuerza y pruebas físicas siguen ahí, guardados.</p><button class="btn sec" onclick="setSimple(false)">Mostrar funciones avanzadas</button></div>`:`<div class="card smcard"><b>🧩 Funciones avanzadas a la vista</b><p class="muted" style="margin:4px 0 10px">Si prefieres ver solo lo básico, vuelve al modo sencillo. No se pierde nada.</p><button class="btn sec" onclick="setSimple(true)">Volver al modo sencillo</button></div>`}
 const MORE=["videos","stats","notes","money","settings","leagues","board"];
 let rotTab="sys";
 const POSC={Colocador:"#f59e0b",Opuesto:"#dc2626",Receptor:"#1f6feb",Central:"#16a34a","Líbero":"#7c3aed",Otro:"#64748b"};
@@ -548,7 +553,7 @@ function render(){
   if(autoSplit()){save();setTimeout(()=>toast("He separado la plantilla en "+root.teams.length+" equipos. Toca el nombre de arriba para cambiar."),400)}
   const myT=(db.leagues||[]).map(L=>L.teams.find(t=>t.mine)).find(t=>t&&t.logo);const TT={home:"Inicio",cal:"Calendario",roster:"Plantilla",stats:"Estadísticas",more:"Más",videos:"Vídeos",rot:"Táctica",ex:"Ejercicios",leagues:"Ligas",board:"Pizarra táctica",notes:"Notas",money:"Cuotas y gastos",settings:"Ajustes",guide:"Guía"};
   $("#teamTitle").innerHTML=`<img src="crest.png" alt="">`+`<span>${esc(db.team||"Mi equipo")}<small><b class="tsel">${esc(teamName(curTeam(),true))} ▾</b> · ${TT[tab]||""}</small></span>`;$("#teamTitle").onclick=openTeams;
-  $("#app").classList.toggle("dash",tab==="home");
+  $("#app").classList.toggle("dash",tab==="home");document.body.classList.toggle("simple",simple);
   const navTab=MORE.includes(tab)?"more":tab;
   document.querySelectorAll("#tabs button").forEach(b=>b.classList.toggle("on",b.dataset.t===navTab));
   const V={home:vHome,cal:vCal,roster:vRoster,stats:vStats,more:vMore,videos:vVideos,rot:vRot,ex:vEx,leagues:vLeagues,board:vBoard,notes:vNotes,money:vMoney,settings:vSettings,guide:vGuide};
@@ -580,11 +585,11 @@ function vHome(){
        <div class="mu-row">${side(nx.home)}<div class="mu-vs"><i>VS</i></div>${side(nx.away)}</div>
        <div class="mu-meta"><span>📅 ${fmtDate(nx.date)}${nx.time&&nx.time!=="00:00"?" · "+nx.time:""}</span>${nx.venue?`<span>📍 ${esc(nx.venue)}</span>`:""}<span class="pill">${nx.home===me.id?"en casa":"fuera"}</span></div>${matchNudge(L,nx,me,days)}<div class="mu-more">Comparar los dos equipos ›</div></div>`}
     if(!fed)h+=`<div class="card click" onclick="go('leagues');selLeague='${L.id}';render()"><div class="muted">${esc(L.name)}</div><h2 style="margin:4px 0;display:flex;align-items:center;gap:8px">${crest(st[i].t,32)}${i+1}º · ${st[i].pts} puntos</h2><div class="muted">${st[i].pg} ganados · ${st[i].pp} perdidos · sets ${st[i].sf}-${st[i].sc}</div></div>`});
-  h+=rivalsCard();{const TL=teamLeague();if(TL)h+=posTrendCard(TL.L,TL.t)}h+=attCard();
-  h+=`<div class="quick"><button onclick="go('board')"><span>✏️</span>Pizarra</button><button onclick="go('ex')"><span>🏋️</span>Ejercicios</button><button onclick="go('stats')"><span>📊</span>Estadísticas</button><button onclick="go('leagues')"><span>🏆</span>Ligas</button></div>`;
-  h+=injHomeCard()+loadHomeCard()+birthdaysCard();
+  h+=rivalsCard();if(!simple){const TL=teamLeague();if(TL)h+=posTrendCard(TL.L,TL.t)}h+=adv(attCard());
+  if(simple)h+=`<div class="quick two"><button onclick="go('cal')"><span>📅</span>Crear entreno o partido</button><button onclick="go('board')"><span>✏️</span>Abrir la pizarra</button></div>`;else h+=`<div class="quick"><button onclick="go('board')"><span>✏️</span>Pizarra</button><button onclick="go('ex')"><span>🏋️</span>Ejercicios</button><button onclick="go('stats')"><span>📊</span>Estadísticas</button><button onclick="go('leagues')"><span>🏆</span>Ligas</button></div>`;
+  h+=adv(injHomeCard()+loadHomeCard())+birthdaysCard();
   const recent=[...db.notes].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,2);
-  if(recent.length)h+=`<div class="card"><div class="row" style="justify-content:space-between"><h3 style="margin:0">Últimas notas</h3><button class="btn sec small" onclick="go('notes')">Ver todas</button></div>${recent.map(n=>`<div style="margin-top:10px"><b>${esc(n.title||"Nota")}</b> <span class="muted">${fmtDate(n.date)}</span><div class="muted note">${esc(n.text.slice(0,140))}${n.text.length>140?"…":""}</div></div>`).join("")}</div>`;
+  if(recent.length&&!simple)h+=`<div class="card"><div class="row" style="justify-content:space-between"><h3 style="margin:0">Últimas notas</h3><button class="btn sec small" onclick="go('notes')">Ver todas</button></div>${recent.map(n=>`<div style="margin-top:10px"><b>${esc(n.title||"Nota")}</b> <span class="muted">${fmtDate(n.date)}</span><div class="muted note">${esc(n.text.slice(0,140))}${n.text.length>140?"…":""}</div></div>`).join("")}</div>`;
   if(!sync.url)h+=syncHint();
   h+=`<div class="slogan"><img src="crest.png" alt="">Más que un equipo, <b>una familia</b></div>`;
   return h;
@@ -594,7 +599,7 @@ function teamAtt(){let n=0,ok=0;db.sessions.forEach(s=>Object.values(s.att).forE
 
 /* ---------- MÁS ---------- */
 const GUIDE=[
- ["🚀","Primeros pasos","home",["Arriba, junto al nombre del club, toca el nombre del equipo para elegir con cuál trabajas (sénior masculino, femenino, juvenil…). Cada equipo tiene su plantilla, calendario, estadísticas, cuotas y notas.","Si ves el aviso “Estás viendo un equipo de ejemplo”, pulsa “Quitar ejemplo” cuando ya no lo necesites.","Mete la plantilla en Plantilla, crea el primer entreno en Calendario y conecta la hoja de Google en Más › Datos y Google para no perder nada y compartirlo con otros entrenadores."]],
+ ["🚀","Primeros pasos","home",["Arriba, junto al nombre del club, toca el nombre del equipo para elegir con cuál trabajas (sénior masculino, femenino, juvenil…). Cada equipo tiene su plantilla, calendario, estadísticas, cuotas y notas.","Si ves el aviso “Estás viendo un equipo de ejemplo”, pulsa “Quitar ejemplo” cuando ya no lo necesites.","La app empieza en modo sencillo, con lo que se usa en pista. Para ver cuotas, vídeos, notas, ejercicios, fuerza y pruebas físicas, ve a Más y pulsa “Mostrar funciones avanzadas”.","Mete la plantilla en Plantilla, crea el primer entreno en Calendario y conecta la hoja de Google en Más › Datos y Google para no perder nada y compartirlo con otros entrenadores."]],
  ["👥","Equipos del club","home",["Toca el nombre del equipo en la cabecera para cambiar de equipo o añadir uno nuevo con su categoría, género y letra (A, B, C…).","Con el lápiz de cada equipo eliges su equipo de la federación: así el inicio muestra su liga, su clasificación y sus rivales.","Ligas, ejercicios y pizarra son comunes a todo el club."]],
  ["📋","Plantilla y fichas","roster",["En Plantilla abre “Añadir jugadores”: puedes escribirlos uno a uno o pegar la lista entera.","Si tu equipo está en la federación, usa “Importar” para traer los nombres de la plantilla oficial.","Toca un jugador para abrir su ficha: datos físicos, asistencia, estadísticas, lesiones, objetivos personales e informe para compartir.","Con “Informe en PDF” sacas el informe de temporada de ese jugador, con tu comentario, para imprimirlo o enviarlo a la familia."]],
  ["📅","Entrenos, partidos y convocatoria","cal",["En Calendario crea un entreno o un partido con fecha, hora y lugar.","Abre la sesión y envía la convocatoria por WhatsApp: cada jugador confirma desde su móvil con un enlace, sin instalar nada.","El día de la sesión usa “Pasar lista” para marcar presente, ausente, tarde o justificado.","Con “Mensaje de la semana” mandas al grupo todos los eventos de los próximos 7 días de una vez."]],
@@ -616,7 +621,7 @@ function vGuide(){return `<div class="card"><h2 style="margin-top:0">📖 Guía 
 function guideFilter(q){q=norm(q||"");let n=0;document.querySelectorAll("details.guide").forEach(d=>{const hit=!q||norm(d.textContent).includes(q);d.hidden=!hit;if(hit)n++;if(q)d.open=hit});const g=$("#gnone");if(g)g.hidden=n>0}
 function vMore(){
   const t=(k,i,n,d)=>`<button class="tile" onclick="go('${k}')"><span>${i}</span><b>${n}</b><small>${d}</small></button>`;
-  ensureLeagues();return `<div class="tiles">${t("stats","📊","Estadísticas","Temporada, jugadores y partidos")}${t("leagues","🏆","Ligas",db.leagues.length+" competiciones")}${t("videos","🎬","Vídeos",db.videos.length+" guardados")}${t("notes","📝","Notas",db.notes.length+" notas")}${t("money","💶","Cuotas y gastos","Saldo "+eur(balance()))}${t("settings","⚙️","Datos y Google",sync.url?"Conectado a Google":"Sin conectar")}${t("guide","📖","Guía rápida","Cómo se usa cada cosa")}</div>`;
+  ensureLeagues();if(simple)return `<div class="tiles">${t("stats","📊","Estadísticas","Temporada, jugadores y partidos")}${t("leagues","🏆","Ligas","Clasificación y rivales")}${t("guide","📖","Guía rápida","Cómo se usa cada cosa")}${t("settings","⚙️","Datos y Google",sync.url?"Conectado a Google":"Sin conectar")}</div>`+simpleCard();return `<div class="tiles">${t("stats","📊","Estadísticas","Temporada, jugadores y partidos")}${t("leagues","🏆","Ligas",db.leagues.length+" competiciones")}${t("videos","🎬","Vídeos",db.videos.length+" guardados")}${t("notes","📝","Notas",db.notes.length+" notas")}${t("money","💶","Cuotas y gastos","Saldo "+eur(balance()))}${t("settings","⚙️","Datos y Google",sync.url?"Conectado a Google":"Sin conectar")}${t("guide","📖","Guía rápida","Cómo se usa cada cosa")}</div>`+simpleCard();
 }
 
 /* ---------- PLANTILLA ---------- */
@@ -696,17 +701,13 @@ function vPlayer(p){
   <div class="kpis" style="margin-bottom:12px"><div class="kpi"><b>${pct(p.id)}%</b><small>asistencia</small></div><div class="kpi"><b>${r.pts}</b><small>puntos (${r.pj} PJ)</small></div><div class="kpi"><b>${r.E}</b><small>errores</small></div>
   <div class="kpi"><b>${r.rec??"–"}</b><small>recepción 0-3</small></div><div class="kpi"><b>${r.srv??"–"}</b><small>saque 0-3</small></div><div class="kpi"><b>${r.pj?(r.pts/r.pj).toFixed(1):"–"}</b><small>puntos/partido</small></div></div>
   ${r.pts?`<div class="card"><h3>Cómo puntúa</h3><div class="bar" style="height:14px;display:flex">${["A","B","S"].map((t,i)=>r[t]?`<i style="width:${r[t]*100/r.pts}%;background:${["#1f6feb","#7c3aed","#16a34a"][i]}"></i>`:"").join("")}</div><div class="muted" style="margin-top:6px">Ataque ${r.A} · Bloqueo ${r.B} · Saque ${r.S}</div></div>`:""}
-  ${injCard(p)}
-  ${loadCard(p)}
-  ${goalsCard(p)}
-  ${physCard(p)}
-  ${testsCard(p)}
+  ${adv(injCard(p)+loadCard(p)+goalsCard(p)+physCard(p)+testsCard(p))}
   <div class="card"><h3>📝 Notas sobre ella</h3>
    <form onsubmit="addNote(event,'${p.id}')"><textarea name="text" rows="2" placeholder="Ej.: trabajar la recepción en zona 5, habló de su lesión…" required></textarea><div class="row" style="margin-top:6px"><button class="btn small">Guardar nota</button></div></form>
    ${notes.map(n=>`<div style="margin-top:10px;border-top:1px solid var(--line);padding-top:8px"><span class="muted">${fmtDate(n.date)}</span> <div class="note">${esc(n.text)}</div></div>`).join("")}</div>
   <div class="card"><h3>Últimas sesiones</h3>${past.length?`<ul class="list">${past.map(s=>`<li><div class="grow">${sessLabel(s)}</div><span class="pill ${s.att[p.id]==="P"?"ok":s.att[p.id]==="A"?"bad":"warn"}">${ATT[s.att[p.id]]}</span></li>`).join("")}</ul>`:'<div class="muted">Sin registros.</div>'}</div>
   ${unpaid.length?`<div class="card"><h3>Cuotas pendientes</h3>${unpaid.map(f=>`<div class="row" style="justify-content:space-between;margin:6px 0"><span>${esc(f.name)}</span><b>${eur(f.amount)}</b></div>`).join("")}</div>`:""}
-  <div class="card"><h3>Sus vídeos</h3>${videoList(vids)||'<div class="muted">Ninguno. Al guardar un vídeo puedes asignárselo.</div>'}</div>`;
+  <div class="card advh"><h3>Sus vídeos</h3>${videoList(vids)||'<div class="muted">Ninguno. Al guardar un vídeo puedes asignárselo.</div>'}</div>`;
 }
 
 /* ---------- CALENDARIO, CONVOCATORIA Y ASISTENCIA ---------- */
@@ -756,9 +757,9 @@ function vSession(s){
   <div class="row"><button class="btn sec small" onclick="allPresent('${s.id}')">Todos presentes</button>${Object.keys(s.rsvp).length?`<button class="btn sec small" onclick="fromRsvp('${s.id}')">Copiar de la convocatoria</button>`:""}</div>
   ${ps.length?`<ul class="list">${ps.map(p=>`<li>${avatar(p)}<div class="grow">${esc(p.name)}</div>
     <div class="att">${Object.keys(ATT).map(k=>`<button title="${ATT[k]}" class="${k} ${s.att[p.id]===k?"on":""}" onclick="mark('${s.id}','${p.id}','${k}')">${k}</button>`).join("")}</div></li>`).join("")}</ul>
-    <p class="muted">P = presente · A = ausente · T = tarde · J = justificado</p>`:`<div class="empty">Primero añade jugadoras en Plantilla.</div>`}</details>`;const body=s.type==="partido"?rivalCard(s)+liveStats(s):planCard(s);return live1?body+lista:lista+body})()}
-  ${wellCard(s)}
-  <div class="card"><h3>Vídeos de esta sesión</h3>${videoList(db.videos.filter(v=>v.session===s.id))||'<div class="muted">Ninguno. Añádelos en Más › Vídeos.</div>'}</div>
+    <p class="muted">P = presente · A = ausente · T = tarde · J = justificado</p>`:`<div class="empty">Primero añade jugadoras en Plantilla.</div>`}</details>`;const body=s.type==="partido"?rivalCard(s)+liveStats(s):adv(planCard(s));return live1?body+lista:lista+body})()}
+  ${adv(wellCard(s))}
+  <div class="card advh"><h3>Vídeos de esta sesión</h3>${videoList(db.videos.filter(v=>v.session===s.id))||'<div class="muted">Ninguno. Añádelos en Más › Vídeos.</div>'}</div>
   <button class="btn danger" onclick="delSession('${s.id}')">Eliminar sesión</button>`;
 }
 function editSession(id){const s=sess(id);const d=$("#dlg");
