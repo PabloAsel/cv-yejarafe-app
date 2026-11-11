@@ -2174,7 +2174,7 @@ async function push(){if(!sync.url||busy||sync.ro)return;busy=true;syncDot();con
     sync.base=db.updatedAt;sync.dirty=false;sync.err=false;sync.last=Date.now()}
   catch(e){sync.err=true}
   busy=false;saveSyncState();syncDot()}
-async function pull(manual){if(!sync.url||busy)return;if(sync.dirty)await push();
+async function pull(manual){if(!sync.url||busy)return;if(manual&&!sync.ro&&db.updatedAt){sync.dirty=true}if(sync.dirty)await push();
   busy=true;syncDot();
   try{const res=await api();
     if(res.db&&res.db.updatedAt){if(res.db.updatedAt!==db.updatedAt&&!sync.dirty){setRoot(Object.assign(blank(),res.db));persist();if(!document.querySelector("dialog[open]"))keepScroll(()=>{})}sync.base=res.db.updatedAt}
